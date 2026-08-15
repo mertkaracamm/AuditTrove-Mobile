@@ -57,6 +57,13 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <LinearGradient colors={gradients.hero} style={styles.hero}>
+          <Pressable
+            style={styles.settingsButton}
+            hitSlop={12}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </Pressable>
           <Image
             source={require('../../assets/icon.png')}
             style={styles.logo}
@@ -193,6 +200,20 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
   },
   logo: { width: 84, height: 84, marginBottom: 10 },
+  settingsButton: {
+    position: 'absolute',
+    top: 58,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: { fontSize: 17, color: colors.textSoft },
   brand: {
     fontFamily: fonts.display,
     fontSize: 32,

@@ -14,6 +14,50 @@ export const API_BASE_URL = 'https://audittrove-production.up.railway.app';
 
 const MOCK_DELAY_MS = 4500;
 
+// ------------------------------------------------------------
+// Cihaz kaydi ve token yonetimi
+// Uygulama ilk gercek istekten once kendine bir cihaz kimligi
+// uretir, backend'e kaydolur ve aldigi token'i saklar.
+// ------------------------------------------------------------
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const DEVICE_ID_KEY = 'audittrove:deviceId';
+const TOKEN_KEY = 'audittrove:deviceToken';
+
+function generateUuid() {
+  // RFC4122 v4 benzeri; kriptografik guc gerektirmeyen cihaz kimligi icin yeterli
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    const v = ch === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+async function getDeviceToken(forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = await AsyncStorage.getItem(TOKEN_KEY);
+    if (cached) return cached;
+  }
+
+  let deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = generateUuid();
+    await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/devices`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ deviceId }),
+  });
+  if (!response.ok) {
+    throw new Error('Cihaz kaydı yapılamadı. Lütfen daha sonra tekrar deneyin.');
+  }
+  const data = await response.json();
+  await AsyncStorage.setItem(TOKEN_KEY, data.token);
+  return data.token;
+}
+
 const MOCK_RESULT = {
   riskScore: 81,
   summary:
@@ -93,15 +137,21 @@ export async function auditDocument(file) {
     type: file.mimeType || 'application/pdf',
   });
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/audit`, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      Accept: 'application/json',
-      // Auth eklendiginde:
-      // Authorization: `Bearer ${token}`,
-    },
-  });
+  let token = await getDeviceToken();
+
+  let response = await sendAudit(formData, token);
+
+  // Token gecersizse (or. secret degisti) bir kez yeniden kaydol ve tekrar dene
+  if (response.status === 401) {
+    token = await getDeviceToken(true);
+    response = await sendAudit(formData, token);
+  }
+
+  if (response.status === 429) {
+    throw new Error(
+      'Saatlik inceleme limitine ulaşıldı. Lütfen bir süre sonra tekrar deneyin.'
+    );
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -109,4 +159,15 @@ export async function auditDocument(file) {
   }
 
   return response.json();
+}
+
+function sendAudit(formData, token) {
+  return fetch(`${API_BASE_URL}/api/v1/audit`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
