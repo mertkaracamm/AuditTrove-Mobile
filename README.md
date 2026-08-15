@@ -59,7 +59,7 @@ Set `USE_MOCK` to `false` and point `API_BASE_URL` to the deployed service to sw
 ## Project structure
 
 ```
-audittrove-mobile/
+AuditTrove-Mobile/
 ├── App.js                      # Navigation container
 ├── src/
 │   ├── theme.js                # Brand colors, typography, risk scale
