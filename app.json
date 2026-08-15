@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "AuditTrove",
+    "slug": "audittrove",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050F33"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.audittrove.app"
+    },
+    "android": {
+      "package": "com.audittrove.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#050F33"
+      }
+    }
+  }
+}

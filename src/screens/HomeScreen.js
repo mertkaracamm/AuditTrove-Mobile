@@ -1,0 +1,337 @@
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Alert,
+  Image,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import * as DocumentPicker from 'expo-document-picker';
+import { colors, gradients, fonts, riskColor } from '../theme';
+import { getHistory } from '../storage/history';
+import { USE_MOCK } from '../api/client';
+
+const SUPPORTED = [
+  'Faaliyet raporları',
+  'Finansal tablolar',
+  'Denetim raporları',
+  'Metin içeren diğer PDF finansal raporlar',
+];
+
+const PIPELINE = [
+  { step: 'PDF', label: 'Metin çıkarma' },
+  { step: 'AI', label: 'Rapor analizi' },
+  { step: 'RPR', label: 'Sayfa referanslı bulgular' },
+];
+
+export default function HomeScreen({ navigation }) {
+  const [recent, setRecent] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      getHistory().then((h) => setRecent(h.slice(0, 3)));
+    }, [])
+  );
+
+  async function pickDocument() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      navigation.navigate('Analyzing', {
+        file: { uri: file.uri, name: file.name, mimeType: file.mimeType },
+      });
+    } catch (e) {
+      Alert.alert('Dosya seçilemedi', e.message);
+    }
+  }
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <LinearGradient colors={gradients.hero} style={styles.hero}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.brand}>AuditTrove</Text>
+          <Text style={styles.tagline}>
+            Finansal raporlarınız için yapay zekâ destekli inceleme
+          </Text>
+          {USE_MOCK && (
+            <View style={styles.demoBadge}>
+              <Text style={styles.demoBadgeText}>DEMO MODU</Text>
+            </View>
+          )}
+        </LinearGradient>
+
+        <View style={styles.uploadCard}>
+          <View style={styles.pipeline}>
+            {PIPELINE.map((p, i) => (
+              <React.Fragment key={p.step}>
+                {i > 0 && <View style={styles.pipelineLine} />}
+                <View style={styles.pipelineItem}>
+                  <View style={styles.pipelineChip}>
+                    <Text style={styles.pipelineStep}>{p.step}</Text>
+                  </View>
+                  <Text style={styles.pipelineLabel}>{p.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+          <Text style={styles.uploadTitle}>Rapor yükle ve incele</Text>
+          <Text style={styles.uploadHint}>
+            Bir PDF seçin — rapor metni çıkarılır, yapay zekâ ile incelenir ve
+            sayfa referanslı bir risk değerlendirmesi hazırlanır.
+          </Text>
+          <Pressable onPress={pickDocument}>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={gradients.button}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.uploadButton, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={styles.uploadButtonText}>PDF seç</Text>
+              </LinearGradient>
+            )}
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionEyebrow}>
+          <Text style={styles.eyebrowStar}>◆ </Text>DESTEKLENEN BELGELER
+        </Text>
+        <View style={styles.card}>
+          {SUPPORTED.map((item, i) => (
+            <View
+              key={item}
+              style={[styles.supportedRow, i > 0 && styles.rowDivider]}
+            >
+              <View style={styles.dot} />
+              <Text style={styles.supportedText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+
+        {recent.length > 0 && (
+          <>
+            <View style={styles.recentHeader}>
+              <Text style={styles.sectionEyebrow}>
+                <Text style={styles.eyebrowStar}>◆ </Text>SON DENETİMLER
+              </Text>
+              <Pressable onPress={() => navigation.navigate('History')}>
+                <Text style={styles.seeAll}>Tümü</Text>
+              </Pressable>
+            </View>
+            <View style={styles.card}>
+              {recent.map((item, i) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() =>
+                    navigation.navigate('Result', {
+                      result: item.result,
+                      fileName: item.fileName,
+                      fromHistory: true,
+                    })
+                  }
+                  style={[styles.recentRow, i > 0 && styles.rowDivider]}
+                >
+                  <View style={styles.recentInfo}>
+                    <Text style={styles.recentName} numberOfLines={1}>
+                      {item.fileName}
+                    </Text>
+                    <Text style={styles.recentDate}>
+                      {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                        day: 'numeric',
+                        month: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.recentScore,
+                      { color: riskColor(item.result.riskScore) },
+                    ]}
+                  >
+                    {item.result.riskScore}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
+        <Text style={styles.disclaimer}>
+          AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım,
+          vergi veya hukuk danışmanlığı değildir. Bulgular, uzman incelemesinden
+          geçirilmeden esas alınmamalıdır.
+        </Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: 48 },
+  hero: {
+    alignItems: 'center',
+    paddingTop: 72,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  logo: { width: 84, height: 84, marginBottom: 10 },
+  brand: {
+    fontFamily: fonts.display,
+    fontSize: 32,
+    color: colors.text,
+    letterSpacing: 0.3,
+  },
+  tagline: {
+    marginTop: 6,
+    fontSize: 14.5,
+    lineHeight: 20,
+    color: colors.textSoft,
+    textAlign: 'center',
+  },
+  demoBadge: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  demoBadgeText: {
+    fontFamily: fonts.mono,
+    fontSize: 10.5,
+    color: colors.gold,
+    letterSpacing: 1,
+  },
+  uploadCard: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 22,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 28,
+  },
+  pipeline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  pipelineItem: { alignItems: 'center', width: 84 },
+  pipelineChip: {
+    backgroundColor: colors.cardSoft,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 5,
+  },
+  pipelineStep: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.cyan,
+  },
+  pipelineLabel: { fontSize: 10.5, color: colors.textSoft },
+  pipelineLine: {
+    width: 22,
+    height: 1,
+    backgroundColor: colors.line,
+    marginBottom: 18,
+  },
+  uploadTitle: {
+    fontFamily: fonts.display,
+    fontSize: 21,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  uploadHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSoft,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  uploadButton: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  uploadButtonText: { color: colors.bgDeep, fontSize: 15.5, fontWeight: '800' },
+  sectionEyebrow: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: colors.textSoft,
+    marginBottom: 8,
+    marginHorizontal: 20,
+  },
+  eyebrowStar: { color: colors.gold },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  supportedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  rowDivider: { borderTopWidth: 1, borderTopColor: colors.line },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.cyan,
+    marginRight: 10,
+  },
+  supportedText: { fontSize: 14.5, color: colors.text },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  seeAll: { fontSize: 13, fontWeight: '700', color: colors.cyan, marginBottom: 8 },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  recentInfo: { flex: 1, marginRight: 12 },
+  recentName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
+  recentDate: { fontSize: 12, color: colors.textSoft, marginTop: 2 },
+  recentScore: { fontFamily: fonts.mono, fontSize: 20, fontWeight: '700' },
+  disclaimer: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textSoft,
+    textAlign: 'center',
+    paddingHorizontal: 28,
+  },
+});
