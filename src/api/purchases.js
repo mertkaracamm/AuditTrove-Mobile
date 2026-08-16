@@ -1,8 +1,8 @@
 // revenuecat katmani. expo go'da native modul yok, o yuzden
 // dev build alana kadar PURCHASES_ENABLED false kalacak
-export const PURCHASES_ENABLED = false;
+export const PURCHASES_ENABLED = true;
 
-const APPLE_API_KEY = 'appl_BURAYA_KENDI_KEYINI_YAZ';
+const APPLE_API_KEY = 'appl_yvGCYwJYtFEoPllbCdwtpdaJZRf';
 
 export const ENTITLEMENT_ID = 'pro';
 

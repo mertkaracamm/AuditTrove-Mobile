@@ -14,14 +14,25 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.audittrove.app"
+      "bundleIdentifier": "com.audittrove.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.audittrove.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#050F33"
       }
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e2f4d238-9372-45dd-abe7-60a14e828095"
+      }
+    },
+    "owner": "mertkaracam"
   }
 }

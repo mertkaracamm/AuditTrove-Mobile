@@ -106,7 +106,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           <Text style={styles.uploadTitle}>Rapor yükle ve incele</Text>
           <Text style={styles.uploadHint}>
-            Bir PDF seçin — rapor metni çıkarılır, yapay zekâ ile incelenir ve
+            Bir PDF seçin. Rapor metni çıkarılır, yapay zekâ ile incelenir ve
             sayfa referanslı bir risk değerlendirmesi hazırlanır.
           </Text>
           <Pressable onPress={pickDocument}>
@@ -121,6 +121,10 @@ export default function HomeScreen({ navigation }) {
               </LinearGradient>
             )}
           </Pressable>
+          <Text style={styles.trustNote}>
+            Belgeleriniz yalnızca analiz için işlenir, sunucularımızda kalıcı
+            olarak saklanmaz.
+          </Text>
         </View>
 
         <Text style={styles.sectionEyebrow}>
@@ -296,6 +300,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginBottom: 6,
+  },
+  trustNote: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textSoft,
+    textAlign: 'center',
+    marginTop: 12,
   },
   uploadHint: {
     fontSize: 13,

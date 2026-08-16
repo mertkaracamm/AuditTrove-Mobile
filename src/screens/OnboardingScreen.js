@@ -28,14 +28,14 @@ const SLIDES = [
     emblem: '◈',
     title: 'AI destekli inceleme',
     body:
-      'Rapor yapılandırılmış bir incelemeden geçer: risk skoru, yönetici özeti, bulgular ve öneriler - her bulgu sayfa referanslı kanıtla desteklenir.',
+      'Rapor yapılandırılmış bir incelemeden geçer: risk skoru, yönetici özeti, bulgular ve öneriler. Her bulgu sayfa referanslı kanıtla desteklenir.',
   },
   {
     id: '3',
     emblem: '✦',
     title: 'Karar destek aracı',
     body:
-      'AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım, vergi veya hukuk danışmanlığı değildir. Bulgular, kullanılmadan önce uzman bir profesyonel tarafından bağımsız olarak değerlendirilmelidir.',
+      'Belgeleriniz yalnızca analiz için işlenir, sunucularımızda kalıcı olarak saklanmaz. AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım, vergi veya hukuk danışmanlığı değildir. Bulgular, kullanılmadan önce uzman bir profesyonel tarafından bağımsız olarak değerlendirilmelidir.',
   },
 ];
 
