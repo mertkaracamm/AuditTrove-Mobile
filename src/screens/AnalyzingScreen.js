@@ -17,7 +17,7 @@ import { incrementMonthlyUsage } from '../storage/usage';
 const STEPS = [t('an.s1'), t('an.s2'), t('an.s3'), t('an.s4')];
 
 export default function AnalyzingScreen({ navigation, route }) {
-  const { file } = route.params;
+  const { file, docType } = route.params;
   const [stepIndex, setStepIndex] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -56,11 +56,11 @@ export default function AnalyzingScreen({ navigation, route }) {
     let cancelled = false;
     (async () => {
       try {
-        const result = await auditDocument(file);
+        const result = await auditDocument(file, docType);
         if (cancelled) return;
-        await addToHistory({ fileName: file.name, result });
+        await addToHistory({ fileName: file.name, result, docType });
         await incrementMonthlyUsage();
-        navigation.replace('Result', { result, fileName: file.name });
+        navigation.replace('Result', { result, fileName: file.name, docType });
       } catch (e) {
         if (cancelled) return;
         if (e.code === 'MONTHLY_LIMIT_REACHED') {

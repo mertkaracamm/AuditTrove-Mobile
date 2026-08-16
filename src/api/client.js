@@ -108,7 +108,7 @@ const MOCK_RESULT = {
  * @param {{ uri: string, name: string, mimeType?: string }} file
  * @returns {Promise<object>} inceleme sonucu
  */
-export async function auditDocument(file) {
+export async function auditDocument(file, documentType) {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
     return MOCK_RESULT;
@@ -116,6 +116,7 @@ export async function auditDocument(file) {
 
   const formData = new FormData();
   formData.append('language', getLocale());
+  formData.append('documentType', documentType || 'general');
   formData.append('file', {
     uri: file.uri,
     name: file.name || 'document.pdf',

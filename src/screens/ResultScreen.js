@@ -6,7 +6,8 @@ import ScoreSeal from '../components/ScoreSeal';
 import { t, getLocale } from '../i18n';
 
 export default function ResultScreen({ navigation, route }) {
-  const { result, fileName } = route.params;
+  const { result, fileName, docType } = route.params;
+  const isFinancial = !docType || docType === 'financial';
   const risks = result.risks || [];
   const recommendations = result.recommendations || [];
   const references = result.references || [];
@@ -109,7 +110,7 @@ export default function ResultScreen({ navigation, route }) {
       {risks.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
-            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.findings')} ({risks.length})
+            <Text style={styles.eyebrowStar}>◆ </Text>{t(isFinancial ? 'res.findings' : 'res.attention')} ({risks.length})
           </Text>
           {risks.map((risk, i) => {
             const sev = severityMap[risk.severity] || severityMap.MEDIUM;
@@ -166,7 +167,7 @@ export default function ResultScreen({ navigation, route }) {
       {advisorQuestions.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
-            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.questions')}
+            <Text style={styles.eyebrowStar}>◆ </Text>{t(isFinancial ? 'res.questions' : 'res.askBeforeSign')}
           </Text>
           <View style={styles.card}>
             {advisorQuestions.map((q, i) => (

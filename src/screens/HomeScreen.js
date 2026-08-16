@@ -17,6 +17,7 @@ import { USE_MOCK } from '../api/client';
 import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 import { t } from '../i18n';
+import DocTypePicker from '../components/DocTypePicker';
 
 const SUPPORTED = [
   t('home.supported1'),
@@ -32,6 +33,7 @@ const PIPELINE = [
 ];
 
 export default function HomeScreen({ navigation }) {
+  const [docType, setDocType] = React.useState('general');
   const [recent, setRecent] = useState([]);
 
   useFocusEffect(
@@ -58,6 +60,7 @@ export default function HomeScreen({ navigation }) {
       const file = result.assets[0];
       navigation.navigate('Analyzing', {
         file: { uri: file.uri, name: file.name, mimeType: file.mimeType },
+        docType,
       });
     } catch (e) {
       Alert.alert(t('home.pickError'), e.message);
@@ -105,6 +108,8 @@ export default function HomeScreen({ navigation }) {
           </View>
           <Text style={styles.uploadTitle}>{t('home.uploadTitle')}</Text>
           <Text style={styles.uploadHint}>{t('home.uploadHint')}</Text>
+          <DocTypePicker value={docType} onChange={setDocType} />
+          <Text style={styles.promise}>{t('home.promise')}</Text>
           <Pressable onPress={pickDocument}>
             {({ pressed }) => (
               <LinearGradient
@@ -282,6 +287,16 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.line,
     marginTop: 14,
+  },
+  promise: {
+    fontSize: 11.5,
+    color: colors.textSoft,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 12,
+    marginBottom: 14,
+    paddingHorizontal: 8,
+    lineHeight: 16,
   },
   uploadTitle: {
     fontFamily: fonts.display,

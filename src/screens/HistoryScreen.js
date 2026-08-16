@@ -10,6 +10,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, riskColor, riskBg, riskLabel } from '../theme';
 import { t, getLocale } from '../i18n';
+import { docTypeLabel, docTypeColor } from '../components/DocTypePicker';
 import { getHistory, clearHistory } from '../storage/history';
 
 export default function HistoryScreen({ navigation }) {
@@ -67,6 +68,7 @@ export default function HistoryScreen({ navigation }) {
                 navigation.navigate('Result', {
                   result: item.result,
                   fileName: item.fileName,
+                  docType: item.docType,
                   fromHistory: true,
                 })
               }
@@ -82,6 +84,9 @@ export default function HistoryScreen({ navigation }) {
               <View style={styles.info}>
                 <Text style={styles.name} numberOfLines={1}>
                   {item.fileName}
+                </Text>
+                <Text style={{ fontSize: 10.5, color: docTypeColor(item.docType || 'financial'), marginTop: 2 }}>
+                  {docTypeLabel(item.docType || 'financial')}
                 </Text>
                 <Text style={styles.meta}>
                   {riskLabel(score)} ·{' '}
