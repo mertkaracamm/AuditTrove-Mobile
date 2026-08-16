@@ -11,6 +11,7 @@ import {
 import { colors, fonts } from '../theme';
 import { auditDocument } from '../api/client';
 import { addToHistory } from '../storage/history';
+import { incrementMonthlyUsage } from '../storage/usage';
 
 const STEPS = [
   'PDF metni çıkarılıyor',
@@ -62,9 +63,14 @@ export default function AnalyzingScreen({ navigation, route }) {
         const result = await auditDocument(file);
         if (cancelled) return;
         await addToHistory({ fileName: file.name, result });
+        await incrementMonthlyUsage();
         navigation.replace('Result', { result, fileName: file.name });
       } catch (e) {
         if (cancelled) return;
+        if (e.code === 'MONTHLY_LIMIT_REACHED') {
+          navigation.replace('Paywall');
+          return;
+        }
         Alert.alert('Denetim başarısız', e.message, [
           { text: 'Tamam', onPress: () => navigation.goBack() },
         ]);

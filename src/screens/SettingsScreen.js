@@ -9,7 +9,10 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
+import { ONBOARDING_KEY } from './OnboardingScreen';
+import { PURCHASES_ENABLED, restorePurchases } from '../api/purchases';
 
 const appJson = require('../../app.json');
 const VERSION = appJson.expo.version;
@@ -23,7 +26,7 @@ function openUrl(url) {
   );
 }
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.aboutCard}>
@@ -38,6 +41,39 @@ export default function SettingsScreen() {
           raporunuzu yükleyin; risk skoru, yönetici özeti ve sayfa referanslı
           bulgular hazırlansın.
         </Text>
+      </View>
+
+      <Text style={styles.sectionEyebrow}>
+        <Text style={styles.eyebrowStar}>◆ </Text>ABONELİK
+      </Text>
+      <View style={styles.card}>
+        <Pressable style={styles.row} onPress={() => navigation.navigate('Paywall')}>
+          <Text style={styles.rowText}>AuditTrove Pro</Text>
+          <Text style={styles.rowChevron}>›</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.row, styles.rowDivider]}
+          onPress={async () => {
+            if (!PURCHASES_ENABLED) {
+              Alert.alert('Test modu', 'Geri yükleme yalnızca gerçek derlemede kullanılabilir.');
+              return;
+            }
+            try {
+              const isPro = await restorePurchases();
+              Alert.alert(
+                isPro ? 'Geri yüklendi' : 'Abonelik bulunamadı',
+                isPro
+                  ? 'AuditTrove Pro aboneliğin aktif.'
+                  : 'Bu Apple hesabına bağlı aktif bir abonelik bulunamadı.'
+              );
+            } catch (e) {
+              Alert.alert('Geri yükleme başarısız', e.message);
+            }
+          }}
+        >
+          <Text style={styles.rowText}>Satın alımları geri yükle</Text>
+          <Text style={styles.rowChevron}>›</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.sectionEyebrow}>
@@ -61,7 +97,19 @@ export default function SettingsScreen() {
         <Text style={styles.eyebrowStar}>◆ </Text>UYGULAMA
       </Text>
       <View style={styles.card}>
-        <View style={styles.row}>
+        <Pressable
+          style={styles.row}
+          onPress={async () => {
+            try {
+              await AsyncStorage.removeItem(ONBOARDING_KEY);
+            } catch {}
+            navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+          }}
+        >
+          <Text style={styles.rowText}>Tanıtımı tekrar göster</Text>
+          <Text style={styles.rowChevron}>›</Text>
+        </Pressable>
+        <View style={[styles.row, styles.rowDivider]}>
           <Text style={styles.rowText}>Versiyon</Text>
           <Text style={styles.rowValue}>{VERSION}</Text>
         </View>

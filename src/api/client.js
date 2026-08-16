@@ -14,24 +14,11 @@ export const API_BASE_URL = 'https://audittrove-production.up.railway.app';
 
 const MOCK_DELAY_MS = 4500;
 
-// ------------------------------------------------------------
-// Cihaz kaydi ve token yonetimi
-// Uygulama ilk gercek istekten once kendine bir cihaz kimligi
-// uretir, backend'e kaydolur ve aldigi token'i saklar.
-// ------------------------------------------------------------
+// cihaz kaydi + token
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOrCreateDeviceId } from './device';
 
-const DEVICE_ID_KEY = 'audittrove:deviceId';
 const TOKEN_KEY = 'audittrove:deviceToken';
-
-function generateUuid() {
-  // RFC4122 v4 benzeri; kriptografik guc gerektirmeyen cihaz kimligi icin yeterli
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
-    const r = (Math.random() * 16) | 0;
-    const v = ch === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 async function getDeviceToken(forceRefresh = false) {
   if (!forceRefresh) {
@@ -39,11 +26,7 @@ async function getDeviceToken(forceRefresh = false) {
     if (cached) return cached;
   }
 
-  let deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
-  if (!deviceId) {
-    deviceId = generateUuid();
-    await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
-  }
+  const deviceId = await getOrCreateDeviceId();
 
   const response = await fetch(`${API_BASE_URL}/api/v1/devices`, {
     method: 'POST',
@@ -141,10 +124,16 @@ export async function auditDocument(file) {
 
   let response = await sendAudit(formData, token);
 
-  // Token gecersizse (or. secret degisti) bir kez yeniden kaydol ve tekrar dene
+  // token duserse bir kez yeniden kaydol
   if (response.status === 401) {
     token = await getDeviceToken(true);
     response = await sendAudit(formData, token);
+  }
+
+  if (response.status === 402) {
+    const err = new Error('Aylık ücretsiz inceleme hakkınız doldu.');
+    err.code = 'MONTHLY_LIMIT_REACHED';
+    throw err;
   }
 
   if (response.status === 429) {

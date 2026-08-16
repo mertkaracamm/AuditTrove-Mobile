@@ -14,6 +14,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { colors, gradients, fonts, riskColor } from '../theme';
 import { getHistory } from '../storage/history';
 import { USE_MOCK } from '../api/client';
+import { checkIsPro } from '../api/purchases';
+import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 
 const SUPPORTED = [
   'Faaliyet raporları',
@@ -39,6 +41,14 @@ export default function HomeScreen({ navigation }) {
 
   async function pickDocument() {
     try {
+      const pro = await checkIsPro();
+      if (!pro) {
+        const used = await getMonthlyUsage();
+        if (used >= FREE_MONTHLY_LIMIT) {
+          navigation.navigate('Paywall');
+          return;
+        }
+      }
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,

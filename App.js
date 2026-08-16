@@ -12,6 +12,8 @@ import AnalyzingScreen from './src/screens/AnalyzingScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import PaywallScreen from './src/screens/PaywallScreen';
+import { initPurchases } from './src/api/purchases';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +33,7 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState(null);
 
   useEffect(() => {
+    initPurchases().catch(() => {});
     AsyncStorage.getItem(ONBOARDING_KEY)
       .then((done) => setInitialRoute(done ? 'Home' : 'Onboarding'))
       .catch(() => setInitialRoute('Onboarding'));
@@ -67,6 +70,11 @@ export default function App() {
         <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Denetim Raporu' }} />
         <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'Denetim Geçmişi' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Ayarlar' }} />
+        <Stack.Screen
+          name="Paywall"
+          component={PaywallScreen}
+          options={{ title: 'AuditTrove Pro', presentation: 'modal' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
