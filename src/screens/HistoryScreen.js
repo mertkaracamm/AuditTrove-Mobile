@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, riskColor, riskBg, riskLabel } from '../theme';
+import { t, getLocale } from '../i18n';
 import { getHistory, clearHistory } from '../storage/history';
 
 export default function HistoryScreen({ navigation }) {
@@ -21,10 +22,10 @@ export default function HistoryScreen({ navigation }) {
   );
 
   function confirmClear() {
-    Alert.alert('Geçmişi temizle', 'Tüm denetim kayıtları silinsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('his.clearTitle'), t('his.clearMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await clearHistory();
@@ -37,10 +38,8 @@ export default function HistoryScreen({ navigation }) {
   if (history.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>Henüz denetim yok</Text>
-        <Text style={styles.emptyText}>
-          İlk PDF belgenizi yüklediğinizde denetim geçmişiniz burada listelenir.
-        </Text>
+        <Text style={styles.emptyTitle}>{t('his.emptyTitle')}</Text>
+        <Text style={styles.emptyText}>{t('his.emptyText')}</Text>
         <Pressable
           onPress={() => navigation.navigate('Home')}
           style={({ pressed }) => [
@@ -48,7 +47,7 @@ export default function HistoryScreen({ navigation }) {
             pressed && { opacity: 0.85 },
           ]}
         >
-          <Text style={styles.emptyButtonText}>Belge yükle</Text>
+          <Text style={styles.emptyButtonText}>{t('his.upload')}</Text>
         </Pressable>
       </View>
     );
@@ -86,7 +85,7 @@ export default function HistoryScreen({ navigation }) {
                 </Text>
                 <Text style={styles.meta}>
                   {riskLabel(score)} ·{' '}
-                  {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                  {new Date(item.createdAt).toLocaleDateString(getLocale() === 'tr' ? 'tr-TR' : 'en-US', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -98,7 +97,7 @@ export default function HistoryScreen({ navigation }) {
         }}
         ListFooterComponent={
           <Pressable onPress={confirmClear} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>Geçmişi temizle</Text>
+            <Text style={styles.clearButtonText}>{t('his.clearTitle')}</Text>
           </Pressable>
         }
       />

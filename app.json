@@ -33,6 +33,9 @@
         "projectId": "e2f4d238-9372-45dd-abe7-60a14e828095"
       }
     },
-    "owner": "mertkaracam"
+    "owner": "mertkaracam",
+    "plugins": [
+      "expo-localization"
+    ]
   }
 }

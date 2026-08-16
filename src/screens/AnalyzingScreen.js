@@ -9,16 +9,12 @@ import {
   Image,
 } from 'react-native';
 import { colors, fonts } from '../theme';
+import { t } from '../i18n';
 import { auditDocument } from '../api/client';
 import { addToHistory } from '../storage/history';
 import { incrementMonthlyUsage } from '../storage/usage';
 
-const STEPS = [
-  'PDF metni çıkarılıyor',
-  'Rapor yapısı ve sayfa işaretleri çözümleniyor',
-  'Yapay zekâ raporu inceliyor',
-  'Sayfa referanslı bulgular hazırlanıyor',
-];
+const STEPS = [t('an.s1'), t('an.s2'), t('an.s3'), t('an.s4')];
 
 export default function AnalyzingScreen({ navigation, route }) {
   const { file } = route.params;
@@ -71,8 +67,8 @@ export default function AnalyzingScreen({ navigation, route }) {
           navigation.replace('Paywall');
           return;
         }
-        Alert.alert('Denetim başarısız', e.message, [
-          { text: 'Tamam', onPress: () => navigation.goBack() },
+        Alert.alert(t('an.failTitle'), e.message, [
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
       }
     })();
@@ -101,7 +97,7 @@ export default function AnalyzingScreen({ navigation, route }) {
       <Text style={styles.fileName} numberOfLines={1}>
         {file.name}
       </Text>
-      <Text style={styles.title}>Rapor inceleniyor</Text>
+      <Text style={styles.title}>{t('an.title')}</Text>
 
       <View style={styles.steps}>
         {STEPS.map((label, i) => {

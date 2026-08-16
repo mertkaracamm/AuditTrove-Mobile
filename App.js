@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from './src/theme';
+import { t } from './src/i18n';
 
 import OnboardingScreen, { ONBOARDING_KEY } from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -53,7 +54,7 @@ export default function App() {
           headerShadowVisible: false,
           headerTitleStyle: { fontFamily: fonts.display, fontSize: 18 },
           headerTintColor: colors.text,
-          headerBackTitle: 'Geri',
+          headerBackTitle: t('nav.back'),
         }}
       >
         <Stack.Screen
@@ -67,13 +68,13 @@ export default function App() {
           component={AnalyzingScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Denetim Raporu' }} />
-        <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'Denetim Geçmişi' }} />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Ayarlar' }} />
+        <Stack.Screen name="Result" component={ResultScreen} options={{ title: t('nav.report') }} />
+        <Stack.Screen name="History" component={HistoryScreen} options={{ title: t('nav.history') }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}
-          options={{ title: 'AuditTrove Pro', presentation: 'modal' }}
+          options={{ title: t('nav.pro'), presentation: 'modal' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

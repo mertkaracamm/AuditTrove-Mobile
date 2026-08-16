@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 import { ONBOARDING_KEY } from './OnboardingScreen';
 import { PURCHASES_ENABLED, restorePurchases } from '../api/purchases';
+import { t } from '../i18n';
 
 const appJson = require('../../app.json');
 const VERSION = appJson.expo.version;
@@ -22,7 +23,7 @@ const WEBSITE_URL = 'https://audittrove.com';
 
 function openUrl(url) {
   Linking.openURL(url).catch(() =>
-    Alert.alert('Bağlantı açılamadı', 'Lütfen daha sonra tekrar deneyin.')
+    Alert.alert(t('set.linkError'), t('set.linkErrorMsg'))
   );
 }
 
@@ -36,65 +37,59 @@ export default function SettingsScreen({ navigation }) {
           resizeMode="contain"
         />
         <Text style={styles.appName}>AuditTrove</Text>
-        <Text style={styles.aboutText}>
-          Finansal raporlarınız için yapay zekâ destekli inceleme. PDF
-          raporunuzu yükleyin; risk skoru, yönetici özeti ve sayfa referanslı
-          bulgular hazırlansın.
-        </Text>
+        <Text style={styles.aboutText}>{t('set.about')}</Text>
       </View>
 
       <Text style={styles.sectionEyebrow}>
-        <Text style={styles.eyebrowStar}>◆ </Text>ABONELİK
+        <Text style={styles.eyebrowStar}>◆ </Text>{t('set.subs')}
       </Text>
       <View style={styles.card}>
         <Pressable style={styles.row} onPress={() => navigation.navigate('Paywall')}>
-          <Text style={styles.rowText}>AuditTrove Pro</Text>
+          <Text style={styles.rowText}>{t('set.pro')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
         <Pressable
           style={[styles.row, styles.rowDivider]}
           onPress={async () => {
             if (!PURCHASES_ENABLED) {
-              Alert.alert('Test modu', 'Geri yükleme yalnızca gerçek derlemede kullanılabilir.');
+              Alert.alert(t('iap.testMode'), t('iap.restoreOnlyReal'));
               return;
             }
             try {
               const isPro = await restorePurchases();
               Alert.alert(
-                isPro ? 'Geri yüklendi' : 'Abonelik bulunamadı',
-                isPro
-                  ? 'AuditTrove Pro aboneliğin aktif.'
-                  : 'Bu Apple hesabına bağlı aktif bir abonelik bulunamadı.'
+                isPro ? t('iap.restored') : t('iap.notFound'),
+                isPro ? t('iap.activeMsg') : t('iap.notFoundMsg')
               );
             } catch (e) {
-              Alert.alert('Geri yükleme başarısız', e.message);
+              Alert.alert(t('iap.restoreFail'), e.message);
             }
           }}
         >
-          <Text style={styles.rowText}>Satın alımları geri yükle</Text>
+          <Text style={styles.rowText}>{t('set.restore')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
       </View>
 
       <Text style={styles.sectionEyebrow}>
-        <Text style={styles.eyebrowStar}>◆ </Text>BAĞLANTILAR
+        <Text style={styles.eyebrowStar}>◆ </Text>{t('set.links')}
       </Text>
       <View style={styles.card}>
         <Pressable style={styles.row} onPress={() => openUrl(PRIVACY_URL)}>
-          <Text style={styles.rowText}>Gizlilik Politikası</Text>
+          <Text style={styles.rowText}>{t('set.privacy')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
         <Pressable
           style={[styles.row, styles.rowDivider]}
           onPress={() => openUrl(WEBSITE_URL)}
         >
-          <Text style={styles.rowText}>Web sitesi</Text>
+          <Text style={styles.rowText}>{t('set.website')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
       </View>
 
       <Text style={styles.sectionEyebrow}>
-        <Text style={styles.eyebrowStar}>◆ </Text>UYGULAMA
+        <Text style={styles.eyebrowStar}>◆ </Text>{t('set.app')}
       </Text>
       <View style={styles.card}>
         <Pressable
@@ -106,20 +101,16 @@ export default function SettingsScreen({ navigation }) {
             navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
           }}
         >
-          <Text style={styles.rowText}>Tanıtımı tekrar göster</Text>
+          <Text style={styles.rowText}>{t('set.showIntro')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
         <View style={[styles.row, styles.rowDivider]}>
-          <Text style={styles.rowText}>Versiyon</Text>
+          <Text style={styles.rowText}>{t('set.version')}</Text>
           <Text style={styles.rowValue}>{VERSION}</Text>
         </View>
       </View>
 
-      <Text style={styles.disclaimer}>
-        AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım,
-        vergi veya hukuk danışmanlığı değildir. Bulgular, uzman incelemesinden
-        geçirilmeden esas alınmamalıdır.
-      </Text>
+      <Text style={styles.disclaimer}>{t('set.disclaimer')}</Text>
     </ScrollView>
   );
 }

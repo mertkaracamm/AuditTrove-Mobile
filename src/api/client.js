@@ -17,6 +17,7 @@ const MOCK_DELAY_MS = 4500;
 // cihaz kaydi + token
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOrCreateDeviceId } from './device';
+import { t, getLocale } from '../i18n';
 
 const TOKEN_KEY = 'audittrove:deviceToken';
 
@@ -34,7 +35,7 @@ async function getDeviceToken(forceRefresh = false) {
     body: JSON.stringify({ deviceId }),
   });
   if (!response.ok) {
-    throw new Error('Cihaz kaydı yapılamadı. Lütfen daha sonra tekrar deneyin.');
+    throw new Error(t('cli.deviceRegFail'));
   }
   const data = await response.json();
   await AsyncStorage.setItem(TOKEN_KEY, data.token);
@@ -114,6 +115,7 @@ export async function auditDocument(file) {
   }
 
   const formData = new FormData();
+  formData.append('language', getLocale());
   formData.append('file', {
     uri: file.uri,
     name: file.name || 'document.pdf',
@@ -131,20 +133,18 @@ export async function auditDocument(file) {
   }
 
   if (response.status === 402) {
-    const err = new Error('Aylık ücretsiz inceleme hakkınız doldu.');
+    const err = new Error(t('cli.monthlyLimit'));
     err.code = 'MONTHLY_LIMIT_REACHED';
     throw err;
   }
 
   if (response.status === 429) {
-    throw new Error(
-      'Saatlik inceleme limitine ulaşıldı. Lütfen bir süre sonra tekrar deneyin.'
-    );
+    throw new Error(t('cli.hourlyLimit'));
   }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    throw new Error(`Sunucu hatası (${response.status}): ${text || 'bilinmeyen hata'}`);
+    throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
   }
 
   return response.json();

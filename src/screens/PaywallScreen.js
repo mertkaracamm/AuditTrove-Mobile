@@ -18,18 +18,14 @@ import {
   restorePurchases,
 } from '../api/purchases';
 import { FREE_MONTHLY_LIMIT } from '../storage/usage';
+import { t } from '../i18n';
 
-const FEATURES = [
-  'Sınırsız rapor incelemesi',
-  'Risk skoru ve yönetici özeti',
-  'Sayfa referanslı bulgular ve kanıtlar',
-  'Öncelikli işleme',
-];
+const FEATURES = [t('pw.f1'), t('pw.f2'), t('pw.f3'), t('pw.f4')];
 
 // Paketler yuklenemezse (or. Expo Go) gosterilecek yedek fiyatlar
 const FALLBACK_PLANS = [
-  { key: 'annual', title: 'Yıllık', price: '$49.99', note: 'yılda bir ödeme' },
-  { key: 'monthly', title: 'Aylık', price: '$6.99', note: 'ayda bir ödeme' },
+  { key: 'annual', title: t('pw.yearly'), price: '$49.99', note: t('pw.perYear') },
+  { key: 'monthly', title: t('pw.monthly'), price: '$6.99', note: t('pw.perMonth') },
 ];
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -48,10 +44,9 @@ export default function PaywallScreen({ navigation }) {
     packages.length > 0
       ? packages.map((p) => ({
           key: p.packageType === 'ANNUAL' ? 'annual' : 'monthly',
-          title: p.packageType === 'ANNUAL' ? 'Yıllık' : 'Aylık',
+          title: p.packageType === 'ANNUAL' ? t('pw.yearly') : t('pw.monthly'),
           price: p.product?.priceString ?? '',
-          note:
-            p.packageType === 'ANNUAL' ? 'yılda bir ödeme' : 'ayda bir ödeme',
+          note: p.packageType === 'ANNUAL' ? t('pw.perYear') : t('pw.perMonth'),
           pkg: p,
         }))
       : FALLBACK_PLANS;
@@ -59,10 +54,7 @@ export default function PaywallScreen({ navigation }) {
   async function buy() {
     const plan = plans.find((p) => p.key === selected);
     if (!PURCHASES_ENABLED || !plan?.pkg) {
-      Alert.alert(
-        'Test modu',
-        'Satın alma yalnızca gerçek derlemede kullanılabilir.'
-      );
+      Alert.alert(t('iap.testMode'), t('iap.purchaseOnlyReal'));
       return;
     }
     setBusy(true);
@@ -70,12 +62,12 @@ export default function PaywallScreen({ navigation }) {
       const { isPro, cancelled } = await purchasePackage(plan.pkg);
       if (cancelled) return;
       if (isPro) {
-        Alert.alert('Hoş geldin!', 'AuditTrove Pro aboneliğin aktif.', [
-          { text: 'Tamam', onPress: () => navigation.goBack() },
+        Alert.alert(t('iap.welcome'), t('iap.activeMsg'), [
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
       }
     } catch (e) {
-      Alert.alert('Satın alma tamamlanamadı', e.message);
+      Alert.alert(t('iap.purchaseFail'), e.message);
     } finally {
       setBusy(false);
     }
@@ -83,24 +75,19 @@ export default function PaywallScreen({ navigation }) {
 
   async function restore() {
     if (!PURCHASES_ENABLED) {
-      Alert.alert(
-        'Test modu',
-        'Geri yükleme yalnızca gerçek derlemede kullanılabilir.'
-      );
+      Alert.alert(t('iap.testMode'), t('iap.restoreOnlyReal'));
       return;
     }
     setBusy(true);
     try {
       const isPro = await restorePurchases();
       Alert.alert(
-        isPro ? 'Geri yüklendi' : 'Abonelik bulunamadı',
-        isPro
-          ? 'AuditTrove Pro aboneliğin aktif.'
-          : 'Bu Apple hesabına bağlı aktif bir abonelik bulunamadı.',
-        isPro ? [{ text: 'Tamam', onPress: () => navigation.goBack() }] : undefined
+        isPro ? t('iap.restored') : t('iap.notFound'),
+        isPro ? t('iap.activeMsg') : t('iap.notFoundMsg'),
+        isPro ? [{ text: t('common.ok'), onPress: () => navigation.goBack() }] : undefined
       );
     } catch (e) {
-      Alert.alert('Geri yükleme başarısız', e.message);
+      Alert.alert(t('iap.restoreFail'), e.message);
     } finally {
       setBusy(false);
     }
@@ -110,12 +97,11 @@ export default function PaywallScreen({ navigation }) {
     <LinearGradient colors={gradients.hero} style={styles.root}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>
-          <Text style={styles.eyebrowStar}>✦ </Text>AUDITTROVE PRO
+          <Text style={styles.eyebrowStar}>✦ </Text>{t('pw.eyebrow')}
         </Text>
-        <Text style={styles.title}>Raporlarınızı sınırsız inceleyin</Text>
+        <Text style={styles.title}>{t('pw.title')}</Text>
         <Text style={styles.subtitle}>
-          Ücretsiz kullanımda ayda {FREE_MONTHLY_LIMIT} inceleme hakkınız var.
-          Pro ile sınır kalkar.
+          {t('pw.subtitle', { limit: FREE_MONTHLY_LIMIT })}
         </Text>
 
         <View style={styles.features}>
@@ -143,7 +129,7 @@ export default function PaywallScreen({ navigation }) {
                 <Text style={styles.planPrice}>{plan.price}</Text>
                 {plan.key === 'annual' && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>AVANTAJLI</Text>
+                    <Text style={styles.badgeText}>{t('pw.badge')}</Text>
                   </View>
                 )}
               </View>
@@ -152,7 +138,7 @@ export default function PaywallScreen({ navigation }) {
         })}
 
         <View style={styles.trialPill}>
-          <Text style={styles.trialText}>İlk 7 gün ücretsiz</Text>
+          <Text style={styles.trialText}>{t('pw.trial')}</Text>
         </View>
 
         <Pressable onPress={buy} disabled={busy}>
@@ -166,29 +152,25 @@ export default function PaywallScreen({ navigation }) {
               {busy ? (
                 <ActivityIndicator color={colors.bgDeep} />
               ) : (
-                <Text style={styles.ctaText}>Ücretsiz denemeyi başlat</Text>
+                <Text style={styles.ctaText}>{t('pw.cta')}</Text>
               )}
             </LinearGradient>
           )}
         </Pressable>
 
-        <Text style={styles.renewNote}>
-          Deneme süresi sonunda aboneliğiniz seçtiğiniz plan üzerinden otomatik
-          yenilenir. İstediğiniz zaman App Store hesap ayarlarından iptal
-          edebilirsiniz.
-        </Text>
+        <Text style={styles.renewNote}>{t('pw.renewNote')}</Text>
 
         <Pressable onPress={restore} hitSlop={8}>
-          <Text style={styles.restore}>Satın alımları geri yükle</Text>
+          <Text style={styles.restore}>{t('pw.restore')}</Text>
         </Pressable>
 
         <View style={styles.legalRow}>
           <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
-            <Text style={styles.legalLink}>Kullanım Koşulları</Text>
+            <Text style={styles.legalLink}>{t('pw.terms')}</Text>
           </Pressable>
           <Text style={styles.legalDot}>·</Text>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
-            <Text style={styles.legalLink}>Gizlilik Politikası</Text>
+            <Text style={styles.legalLink}>{t('pw.privacy')}</Text>
           </Pressable>
         </View>
       </ScrollView>

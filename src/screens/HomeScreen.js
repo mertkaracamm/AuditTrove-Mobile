@@ -16,18 +16,19 @@ import { getHistory } from '../storage/history';
 import { USE_MOCK } from '../api/client';
 import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
+import { t } from '../i18n';
 
 const SUPPORTED = [
-  'Faaliyet raporları',
-  'Finansal tablolar',
-  'Denetim raporları',
-  'Metin içeren diğer PDF finansal raporlar',
+  t('home.supported1'),
+  t('home.supported2'),
+  t('home.supported3'),
+  t('home.supported4'),
 ];
 
 const PIPELINE = [
-  { step: 'PDF', label: 'Metin çıkarma' },
-  { step: 'AI', label: 'Rapor analizi' },
-  { step: 'RPR', label: 'Sayfa referanslı bulgular' },
+  { step: 'PDF', label: t('home.pipeExtract') },
+  { step: 'AI', label: t('home.pipeAnalyze') },
+  { step: 'RPR', label: t('home.pipeFindings') },
 ];
 
 export default function HomeScreen({ navigation }) {
@@ -59,7 +60,7 @@ export default function HomeScreen({ navigation }) {
         file: { uri: file.uri, name: file.name, mimeType: file.mimeType },
       });
     } catch (e) {
-      Alert.alert('Dosya seçilemedi', e.message);
+      Alert.alert(t('home.pickError'), e.message);
     }
   }
 
@@ -80,12 +81,10 @@ export default function HomeScreen({ navigation }) {
             resizeMode="contain"
           />
           <Text style={styles.brand}>AuditTrove</Text>
-          <Text style={styles.tagline}>
-            Finansal raporlarınız için yapay zekâ destekli inceleme
-          </Text>
+          <Text style={styles.tagline}>{t('home.tagline')}</Text>
           {USE_MOCK && (
             <View style={styles.demoBadge}>
-              <Text style={styles.demoBadgeText}>DEMO MODU</Text>
+              <Text style={styles.demoBadgeText}>{t('home.demo')}</Text>
             </View>
           )}
         </LinearGradient>
@@ -104,11 +103,8 @@ export default function HomeScreen({ navigation }) {
               </React.Fragment>
             ))}
           </View>
-          <Text style={styles.uploadTitle}>Rapor yükle ve incele</Text>
-          <Text style={styles.uploadHint}>
-            Bir PDF seçin. Rapor metni çıkarılır, yapay zekâ ile incelenir ve
-            sayfa referanslı bir risk değerlendirmesi hazırlanır.
-          </Text>
+          <Text style={styles.uploadTitle}>{t('home.uploadTitle')}</Text>
+          <Text style={styles.uploadHint}>{t('home.uploadHint')}</Text>
           <Pressable onPress={pickDocument}>
             {({ pressed }) => (
               <LinearGradient
@@ -117,18 +113,15 @@ export default function HomeScreen({ navigation }) {
                 end={{ x: 1, y: 0 }}
                 style={[styles.uploadButton, pressed && { opacity: 0.85 }]}
               >
-                <Text style={styles.uploadButtonText}>PDF seç</Text>
+                <Text style={styles.uploadButtonText}>{t('home.pickPdf')}</Text>
               </LinearGradient>
             )}
           </Pressable>
-          <Text style={styles.trustNote}>
-            Belgeleriniz yalnızca analiz için işlenir, sunucularımızda kalıcı
-            olarak saklanmaz.
-          </Text>
+          <Text style={styles.trustNote}>{t('home.trustNote')}</Text>
         </View>
 
         <Text style={styles.sectionEyebrow}>
-          <Text style={styles.eyebrowStar}>◆ </Text>DESTEKLENEN BELGELER
+          <Text style={styles.eyebrowStar}>◆ </Text>{t('home.supportedTitle')}
         </Text>
         <View style={styles.card}>
           {SUPPORTED.map((item, i) => (
@@ -146,10 +139,10 @@ export default function HomeScreen({ navigation }) {
           <>
             <View style={styles.recentHeader}>
               <Text style={styles.sectionEyebrow}>
-                <Text style={styles.eyebrowStar}>◆ </Text>SON DENETİMLER
+                <Text style={styles.eyebrowStar}>◆ </Text>{t('home.recent')}
               </Text>
               <Pressable onPress={() => navigation.navigate('History')}>
-                <Text style={styles.seeAll}>Tümü</Text>
+                <Text style={styles.seeAll}>{t('home.all')}</Text>
               </Pressable>
             </View>
             <View style={styles.card}>
@@ -192,11 +185,7 @@ export default function HomeScreen({ navigation }) {
           </>
         )}
 
-        <Text style={styles.disclaimer}>
-          AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım,
-          vergi veya hukuk danışmanlığı değildir. Bulgular, uzman incelemesinden
-          geçirilmeden esas alınmamalıdır.
-        </Text>
+        <Text style={styles.disclaimer}>{t('set.disclaimer')}</Text>
       </ScrollView>
     </View>
   );

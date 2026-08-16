@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, fonts, severityMap } from '../theme';
 import ScoreSeal from '../components/ScoreSeal';
+import { t } from '../i18n';
 
 export default function ResultScreen({ navigation, route }) {
   const { result, fileName } = route.params;
@@ -21,7 +22,7 @@ export default function ResultScreen({ navigation, route }) {
       </View>
 
       <Text style={styles.sectionEyebrow}>
-        <Text style={styles.eyebrowStar}>◆ </Text>YÖNETİCİ ÖZETİ
+        <Text style={styles.eyebrowStar}>◆ </Text>{t('res.summary')}
       </Text>
       <View style={styles.card}>
         <Text style={styles.summary}>{result.summary}</Text>
@@ -30,8 +31,7 @@ export default function ResultScreen({ navigation, route }) {
       {risks.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
-            <Text style={styles.eyebrowStar}>◆ </Text>TESPİT EDİLEN BULGULAR (
-            {risks.length})
+            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.findings')} ({risks.length})
           </Text>
           {risks.map((risk, i) => {
             const sev = severityMap[risk.severity] || severityMap.MEDIUM;
@@ -70,7 +70,7 @@ export default function ResultScreen({ navigation, route }) {
       {recommendations.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
-            <Text style={styles.eyebrowStar}>◆ </Text>ÖNERİLEN ADIMLAR
+            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.steps')}
           </Text>
           <View style={styles.card}>
             {recommendations.map((rec, i) => (
@@ -88,7 +88,7 @@ export default function ResultScreen({ navigation, route }) {
       {references.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
-            <Text style={styles.eyebrowStar}>◆ </Text>RAPOR REFERANSLARI
+            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.refs')}
           </Text>
           <View style={styles.card}>
             {references.map((ref, i) => {
@@ -113,16 +113,12 @@ export default function ResultScreen({ navigation, route }) {
             end={{ x: 1, y: 0 }}
             style={[styles.doneButton, pressed && { opacity: 0.85 }]}
           >
-            <Text style={styles.doneButtonText}>Yeni inceleme başlat</Text>
+            <Text style={styles.doneButtonText}>{t('res.newReview')}</Text>
           </LinearGradient>
         )}
       </Pressable>
 
-      <Text style={styles.disclaimer}>
-        Bu çıktı bir karar destek raporudur; finansal, muhasebe, yatırım, vergi
-        veya hukuk danışmanlığı değildir. Bulgular ve referanslar, esas alınmadan
-        önce uzman bir kişi tarafından doğrulanmalıdır.
-      </Text>
+      <Text style={styles.disclaimer}>{t('res.disclaimer')}</Text>
     </ScrollView>
   );
 }

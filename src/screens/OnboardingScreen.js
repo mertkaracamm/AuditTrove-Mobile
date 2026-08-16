@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, fonts } from '../theme';
+import { t } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -19,23 +20,20 @@ const SLIDES = [
   {
     id: '1',
     emblem: '⬡',
-    title: 'Raporunuzu yükleyin',
-    body:
-      'Faaliyet raporu, finansal tablo veya denetim raporunuzu PDF olarak seçin. Analiz için tek dokunuş yeterli.',
+    title: t('ob.t1'),
+    body: t('ob.b1'),
   },
   {
     id: '2',
     emblem: '◈',
-    title: 'AI destekli inceleme',
-    body:
-      'Rapor yapılandırılmış bir incelemeden geçer: risk skoru, yönetici özeti, bulgular ve öneriler. Her bulgu sayfa referanslı kanıtla desteklenir.',
+    title: t('ob.t2'),
+    body: t('ob.b2'),
   },
   {
     id: '3',
     emblem: '✦',
-    title: 'Karar destek aracı',
-    body:
-      'Belgeleriniz yalnızca analiz için işlenir, sunucularımızda kalıcı olarak saklanmaz. AuditTrove bir karar destek aracıdır; finansal, muhasebe, yatırım, vergi veya hukuk danışmanlığı değildir. Bulgular, kullanılmadan önce uzman bir profesyonel tarafından bağımsız olarak değerlendirilmelidir.',
+    title: t('ob.t3'),
+    body: t('ob.b3'),
   },
 ];
 
@@ -70,7 +68,7 @@ export default function OnboardingScreen({ navigation }) {
     <LinearGradient colors={gradients.hero} style={styles.root}>
       {!isLast && (
         <TouchableOpacity style={styles.skip} onPress={finish} hitSlop={12}>
-          <Text style={styles.skipText}>Atla</Text>
+          <Text style={styles.skipText}>{t('ob.skip')}</Text>
         </TouchableOpacity>
       )}
 
@@ -110,7 +108,7 @@ export default function OnboardingScreen({ navigation }) {
             end={{ x: 1, y: 0 }}
             style={styles.cta}
           >
-            <Text style={styles.ctaText}>{isLast ? 'Başla' : 'Devam'}</Text>
+            <Text style={styles.ctaText}>{isLast ? t('ob.start') : t('ob.next')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

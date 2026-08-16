@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { Platform } from 'react-native';
 
 // AuditTrove marka teması — logo ve banner'dan türetildi.
@@ -48,13 +49,13 @@ export function riskBg(score) {
 }
 
 export function riskLabel(score) {
-  if (score >= 70) return 'Yüksek risk';
-  if (score >= 40) return 'Orta risk';
-  return 'Düşük risk';
+  if (score >= 70) return t('risk.highLabel');
+  if (score >= 40) return t('risk.midLabel');
+  return t('risk.lowLabel');
 }
 
 export const severityMap = {
-  HIGH: { label: 'Yüksek', color: colors.riskHigh, bg: colors.riskHighBg },
-  MEDIUM: { label: 'Orta', color: colors.riskMid, bg: colors.riskMidBg },
-  LOW: { label: 'Düşük', color: colors.riskLow, bg: colors.riskLowBg },
+  HIGH: { label: t('risk.high'), color: colors.riskHigh, bg: colors.riskHighBg },
+  MEDIUM: { label: t('risk.mid'), color: colors.riskMid, bg: colors.riskMidBg },
+  LOW: { label: t('risk.low'), color: colors.riskLow, bg: colors.riskLowBg },
 };
