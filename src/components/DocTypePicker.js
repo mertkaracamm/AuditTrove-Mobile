@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
@@ -93,15 +93,11 @@ export default function DocTypePicker({ value, onChange }) {
         {t('doctype.title')}
       </Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-      >
+      <View style={styles.chipGrid}>
         {DOC_TYPES.map((d) => (
           <IconChip key={d.id} type={d} selected={value === d.id} onPress={onChange} />
         ))}
-      </ScrollView>
+      </View>
 
       <Animated.View style={{ opacity: reveal, transform: [{ translateY: slide }] }}>
         <LinearGradient
@@ -133,8 +129,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  chipRow: {
-    paddingHorizontal: 10,
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     paddingVertical: 6,
     gap: 11,
   },
