@@ -23,6 +23,8 @@ export const colors = {
   riskLowBg: 'rgba(47,212,142,0.14)',
   riskMidBg: 'rgba(245,197,66,0.14)',
   riskHighBg: 'rgba(255,107,94,0.14)',
+  riskCritical: '#E0453A',
+  riskCriticalBg: 'rgba(224,69,58,0.18)',
 };
 
 export const gradients = {
@@ -36,21 +38,26 @@ export const fonts = {
   mono: Platform.select({ ios: 'Menlo', android: 'monospace' }),
 };
 
+// Eşikler backend'deki calibrateScore bantlarıyla birebir aynı:
+// 0-20 düşük, 21-45 orta, 46-70 yüksek, 71-100 kritik.
 export function riskColor(score) {
-  if (score >= 70) return colors.riskHigh;
-  if (score >= 40) return colors.riskMid;
+  if (score >= 71) return colors.riskCritical;
+  if (score >= 46) return colors.riskHigh;
+  if (score >= 21) return colors.riskMid;
   return colors.riskLow;
 }
 
 export function riskBg(score) {
-  if (score >= 70) return colors.riskHighBg;
-  if (score >= 40) return colors.riskMidBg;
+  if (score >= 71) return colors.riskCriticalBg;
+  if (score >= 46) return colors.riskHighBg;
+  if (score >= 21) return colors.riskMidBg;
   return colors.riskLowBg;
 }
 
 export function riskLabel(score) {
-  if (score >= 70) return t('risk.highLabel');
-  if (score >= 40) return t('risk.midLabel');
+  if (score >= 71) return t('risk.criticalLabel');
+  if (score >= 46) return t('risk.highLabel');
+  if (score >= 21) return t('risk.midLabel');
   return t('risk.lowLabel');
 }
 

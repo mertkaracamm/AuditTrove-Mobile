@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, fonts, severityMap } from '../theme';
 import ScoreSeal from '../components/ScoreSeal';
-import { t } from '../i18n';
+import { t, getLocale } from '../i18n';
 
 export default function ResultScreen({ navigation, route }) {
   const { result, fileName } = route.params;
@@ -59,7 +59,8 @@ export default function ResultScreen({ navigation, route }) {
                 style={[styles.sevChip, { backgroundColor: sev.bg }]}
               >
                 <Text style={[styles.sevChipText, { color: sev.color }]}>
-                  {sevCounts[key]} {sev.label.toUpperCase()}
+                  {sevCounts[key]}{' '}
+                  {sev.label.toLocaleUpperCase(getLocale() === 'tr' ? 'tr-TR' : 'en-US')}
                 </Text>
               </View>
             );
@@ -80,7 +81,9 @@ export default function ResultScreen({ navigation, route }) {
             {keyMetrics.map((m, i) => (
               <View key={i} style={styles.metricCard}>
                 <Text style={styles.metricLabel} numberOfLines={1}>
-                  {m.label}
+                  {(m.label || '').toLocaleUpperCase(
+                    getLocale() === 'tr' ? 'tr-TR' : 'en-US'
+                  )}
                 </Text>
                 <Text style={styles.metricValue} numberOfLines={1}>
                   {m.value}
@@ -271,7 +274,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     color: colors.textSoft,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   metricValue: {

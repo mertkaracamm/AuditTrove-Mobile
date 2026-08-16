@@ -10,6 +10,7 @@ import Svg, {
   Path,
 } from 'react-native-svg';
 import { colors, fonts, riskColor, riskLabel } from '../theme';
+import { getLocale } from '../i18n';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -99,7 +100,7 @@ export default function ScoreSeal({ score, size = 220 }) {
         <Text style={[styles.score, { color: colors.text }]}>{score}</Text>
         <Text style={styles.of}>/ 100</Text>
         <View style={[styles.labelChip, { borderColor: color }]}>
-          <Text style={[styles.label, { color }]}>{riskLabel(score)}</Text>
+          <Text style={[styles.label, { color }]}>{riskLabel(score).toLocaleUpperCase(getLocale() === 'tr' ? 'tr-TR' : 'en-US')}</Text>
         </View>
       </View>
     </View>
@@ -134,7 +135,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 1,
   },
 });
