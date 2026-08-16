@@ -65,6 +65,12 @@ function IconChip({ type, selected, onPress }) {
           size={21}
           color={selected ? '#081233' : type.color}
         />
+        <Text
+          style={[styles.chipLabel, selected && { color: '#081233', fontWeight: '700' }]}
+          numberOfLines={1}
+        >
+          {t('doctype.short.' + type.id)}
+        </Text>
       </Pressable>
     </Animated.View>
   );
@@ -137,14 +143,19 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   chip: {
-    width: 48,
-    height: 48,
+    width: 66,
+    height: 58,
     borderRadius: 16,
     backgroundColor: colors.cardSoft,
     borderWidth: 1.5,
     borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipLabel: {
+    fontSize: 9,
+    color: colors.textSoft,
+    marginTop: 3,
   },
   hero: {
     flexDirection: 'row',

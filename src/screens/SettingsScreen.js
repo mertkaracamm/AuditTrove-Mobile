@@ -18,7 +18,7 @@ import { t } from '../i18n';
 const appJson = require('../../app.json');
 const VERSION = appJson.expo.version;
 
-const PRIVACY_URL = 'https://audittrove.com/privacy';
+const PRIVACY_URL = 'https://audittrove-production.up.railway.app/privacy';
 const WEBSITE_URL = 'https://audittrove.com';
 
 function openUrl(url) {
