@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, fonts, severityMap } from '../theme';
 import ScoreSeal from '../components/ScoreSeal';
@@ -10,6 +10,30 @@ export default function ResultScreen({ navigation, route }) {
   const risks = result.risks || [];
   const recommendations = result.recommendations || [];
   const references = result.references || [];
+  const keyMetrics = result.keyMetrics || [];
+  const advisorQuestions = result.advisorQuestions || [];
+
+  const sevCounts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  for (const r of risks) {
+    const key = r.severity === 'CRITICAL' ? 'HIGH' : r.severity;
+    if (sevCounts[key] !== undefined) sevCounts[key] += 1;
+  }
+  const chipOrder = ['HIGH', 'MEDIUM', 'LOW'];
+
+  function shareReport() {
+    const lines = [
+      `AuditTrove · ${fileName}`,
+      `${t('res.shareScore')}: ${result.riskScore}/100`,
+      '',
+      result.summary,
+      '',
+      `${t('res.shareFindings')}:`,
+      ...risks.map((r, i) => `${i + 1}. ${r.title}`),
+      '',
+      t('res.shareFooter'),
+    ];
+    Share.share({ message: lines.join('\n') }).catch(() => {});
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -20,6 +44,57 @@ export default function ResultScreen({ navigation, route }) {
       <View style={styles.sealWrap}>
         <ScoreSeal score={result.riskScore} />
       </View>
+
+      {result.scoreRationale ? (
+        <Text style={styles.rationale}>{result.scoreRationale}</Text>
+      ) : null}
+
+      {risks.length > 0 && (
+        <View style={styles.chipRow}>
+          {chipOrder.map((key) => {
+            const sev = severityMap[key];
+            return (
+              <View
+                key={key}
+                style={[styles.sevChip, { backgroundColor: sev.bg }]}
+              >
+                <Text style={[styles.sevChipText, { color: sev.color }]}>
+                  {sevCounts[key]} {sev.label.toUpperCase()}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {keyMetrics.length > 0 && (
+        <>
+          <Text style={styles.sectionEyebrow}>
+            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.metrics')}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.metricsRow}
+          >
+            {keyMetrics.map((m, i) => (
+              <View key={i} style={styles.metricCard}>
+                <Text style={styles.metricLabel} numberOfLines={1}>
+                  {m.label}
+                </Text>
+                <Text style={styles.metricValue} numberOfLines={1}>
+                  {m.value}
+                </Text>
+                {m.note ? (
+                  <Text style={styles.metricNote} numberOfLines={2}>
+                    {m.note}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       <Text style={styles.sectionEyebrow}>
         <Text style={styles.eyebrowStar}>◆ </Text>{t('res.summary')}
@@ -85,6 +160,22 @@ export default function ResultScreen({ navigation, route }) {
         </>
       )}
 
+      {advisorQuestions.length > 0 && (
+        <>
+          <Text style={styles.sectionEyebrow}>
+            <Text style={styles.eyebrowStar}>◆ </Text>{t('res.questions')}
+          </Text>
+          <View style={styles.card}>
+            {advisorQuestions.map((q, i) => (
+              <View key={i} style={[styles.recRow, i > 0 && styles.rowDivider]}>
+                <Text style={styles.questionMark}>?</Text>
+                <Text style={styles.recText}>{q}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
       {references.length > 0 && (
         <>
           <Text style={styles.sectionEyebrow}>
@@ -104,6 +195,10 @@ export default function ResultScreen({ navigation, route }) {
           </View>
         </>
       )}
+
+      <Pressable onPress={shareReport} style={styles.shareButton}>
+        <Text style={styles.shareButtonText}>{t('res.share')}</Text>
+      </Pressable>
 
       <Pressable onPress={() => navigation.popToTop()}>
         {({ pressed }) => (
@@ -134,6 +229,71 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sealWrap: { alignItems: 'center', marginVertical: 20 },
+  rationale: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSoft,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: 14,
+    paddingHorizontal: 12,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 22,
+  },
+  sevChip: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  sevChipText: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  metricsRow: { gap: 10, paddingBottom: 4, marginBottom: 18 },
+  metricCard: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minWidth: 130,
+    maxWidth: 180,
+  },
+  metricLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: colors.textSoft,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontFamily: fonts.mono,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  metricNote: { fontSize: 11, color: colors.textSoft, marginTop: 4 },
+  questionMark: {
+    fontFamily: fonts.mono,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.gold,
+    width: 22,
+  },
+  shareButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  shareButtonText: { color: colors.cyan, fontSize: 14.5, fontWeight: '600' },
   sectionEyebrow: {
     fontSize: 11.5,
     fontWeight: '700',
