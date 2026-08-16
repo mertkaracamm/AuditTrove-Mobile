@@ -18,7 +18,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Belgelerinizi tarayıp incelemek için kamera erişimi gerekir."
+        "NSCameraUsageDescription": "Belgelerinizi tarayıp incelemek için kamera erişimi gerekir.",
+        "NSPhotoLibraryUsageDescription": "Belgelerinizin fotoğraflarını seçip incelemek için fotoğraflarınıza erişim gerekir."
       }
     },
     "android": {
@@ -36,11 +37,25 @@
     },
     "owner": "mertkaracam",
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.5"
+          }
+        }
+      ],
       "expo-localization",
       [
         "react-native-document-scanner-plugin",
         {
           "cameraPermission": "Belgelerinizi tarayıp incelemek için kamera erişimi gerekir."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Belgelerinizin fotoğraflarını seçip incelemek için fotoğraflarınıza erişim gerekir."
         }
       ]
     ]

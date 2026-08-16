@@ -4,6 +4,7 @@
 let DocumentScanner = null;
 let TextRecognition = null;
 let Print = null;
+let ImagePicker = null;
 
 try {
   DocumentScanner = require('react-native-document-scanner-plugin').default;
@@ -14,8 +15,12 @@ try {
 try {
   Print = require('expo-print');
 } catch (e) {}
+try {
+  ImagePicker = require('expo-image-picker');
+} catch (e) {}
 
 export const SCAN_ENABLED = Boolean(DocumentScanner && TextRecognition && Print);
+export const PHOTOS_ENABLED = Boolean(ImagePicker && TextRecognition && Print);
 
 function escapeHtml(text) {
   return String(text)
@@ -35,9 +40,37 @@ export async function scanToPdf() {
   if (!images || images.length === 0) {
     return null; // iptal
   }
+  return imagesToTextPdf(images);
+}
 
+/**
+ * Galeriden fotograf(lar) sectirir, OCR'dan gecirir ve metinli PDF uretir.
+ * @returns {Promise<{uri:string,name:string,mimeType:string}|null>} iptalde null
+ */
+export async function pickPhotosToPdf() {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    const err = new Error('photos_denied');
+    err.code = 'PHOTOS_DENIED';
+    throw err;
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsMultipleSelection: true,
+    orderedSelection: true,
+    selectionLimit: 20,
+    quality: 0.9,
+  });
+  if (result.canceled || !result.assets || result.assets.length === 0) {
+    return null;
+  }
+  return imagesToTextPdf(result.assets.map((a) => a.uri));
+}
+
+// Ortak cekirdek: goruntu listesi -> sayfa sayfa OCR -> metin katmanli PDF.
+async function imagesToTextPdf(imageUris) {
   const pageTexts = [];
-  for (const imageUri of images) {
+  for (const imageUri of imageUris) {
     const uri = imageUri.startsWith('file://') ? imageUri : 'file://' + imageUri;
     try {
       const recognized = await TextRecognition.recognize(uri);
@@ -54,7 +87,7 @@ export async function scanToPdf() {
     throw err;
   }
 
-  // Her taranan sayfa PDF'te ayri sayfa olur; boylece backend'in
+  // Her goruntu PDF'te ayri sayfa olur; boylece backend'in
   // [REPORT PAGE n] isaretcileri fiziksel sayfalarla eslesir.
   const pagesHtml = pageTexts
     .map(

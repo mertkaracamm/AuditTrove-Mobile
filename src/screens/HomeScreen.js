@@ -18,7 +18,7 @@ import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
-import { SCAN_ENABLED, scanToPdf } from '../scan/scanner';
+import { SCAN_ENABLED, PHOTOS_ENABLED, scanToPdf, pickPhotosToPdf } from '../scan/scanner';
 
 const SUPPORTED = [
   t('home.supported1'),
@@ -72,10 +72,10 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  async function scanDocument() {
+  async function runOcrFlow(producer) {
     try {
       if (!(await ensureQuota())) return;
-      const file = await scanToPdf();
+      const file = await producer();
       if (!file) return; // iptal
       navigation.navigate('Analyzing', { file, docType });
     } catch (e) {
@@ -83,9 +83,16 @@ export default function HomeScreen({ navigation }) {
         Alert.alert(t('home.scanNoTextTitle'), t('home.scanNoText'));
         return;
       }
+      if (e && e.code === 'PHOTOS_DENIED') {
+        Alert.alert(t('home.photosDeniedTitle'), t('home.photosDenied'));
+        return;
+      }
       Alert.alert(t('home.pickError'), e.message);
     }
   }
+
+  const scanDocument = () => runOcrFlow(scanToPdf);
+  const pickPhotos = () => runOcrFlow(pickPhotosToPdf);
 
   return (
     <View style={styles.screen}>
@@ -142,14 +149,27 @@ export default function HomeScreen({ navigation }) {
               </LinearGradient>
             )}
           </Pressable>
-          {SCAN_ENABLED && (
-            <Pressable onPress={scanDocument}>
-              {({ pressed }) => (
-                <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
-                  <Text style={styles.scanButtonText}>{t('home.scan')}</Text>
-                </View>
+          {(SCAN_ENABLED || PHOTOS_ENABLED) && (
+            <View style={styles.altRow}>
+              {SCAN_ENABLED && (
+                <Pressable onPress={scanDocument} style={{ flex: 1 }}>
+                  {({ pressed }) => (
+                    <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
+                      <Text style={styles.scanButtonText}>{t('home.scan')}</Text>
+                    </View>
+                  )}
+                </Pressable>
               )}
-            </Pressable>
+              {PHOTOS_ENABLED && (
+                <Pressable onPress={pickPhotos} style={{ flex: 1 }}>
+                  {({ pressed }) => (
+                    <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
+                      <Text style={styles.scanButtonText}>{t('home.photos')}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              )}
+            </View>
           )}
           <Text style={styles.trustNote}>{t('home.trustNote')}</Text>
         </View>
@@ -354,6 +374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadButtonText: { color: colors.bgDeep, fontSize: 15.5, fontWeight: '800' },
+  altRow: { flexDirection: 'row', gap: 10 },
   scanButton: {
     marginTop: 10,
     borderWidth: 1.5,
