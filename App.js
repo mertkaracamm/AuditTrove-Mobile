@@ -68,7 +68,7 @@ export default function App() {
           component={AnalyzingScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="Result" component={ResultScreen} options={{ title: t('nav.report') }} />
+        <Stack.Screen name="Result" component={ResultScreen} options={({ route }) => ({ title: (!route.params?.docType || route.params.docType === 'financial') ? t('nav.report') : t('nav.review') })} />
         <Stack.Screen name="History" component={HistoryScreen} options={{ title: t('nav.history') }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
         <Stack.Screen

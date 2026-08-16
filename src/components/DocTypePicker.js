@@ -1,19 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
 import { t } from '../i18n';
 
-// Masaya serilmis belge destesi: her tip kendi renk tonunda, hafif egik bir kart.
-// Secilen kart dikleşip buyur ve kendi renginde parlar.
+// Masaya serilmis belge destesi: her tip kendi renginde bir kart.
+// Secilen kart dikleşir, buyur ve kendi renk gradientiyle dolar.
 export const DOC_TYPES = [
-  { id: 'general', icon: 'document-text-outline', color: '#8FA3D9' },
-  { id: 'financial', icon: 'trending-up-outline', color: '#F5C542' },
-  { id: 'rental', icon: 'home-outline', color: '#05D9F0' },
-  { id: 'subscription', icon: 'repeat-outline', color: '#B48CF2' },
-  { id: 'insurance', icon: 'shield-checkmark-outline', color: '#02A5A5' },
-  { id: 'vehicle', icon: 'car-outline', color: '#FF9B54' },
-  { id: 'employment', icon: 'briefcase-outline', color: '#2FD48E' },
+  { id: 'general', icon: 'document-text', color: '#8FA3D9', dark: '#5B72B8' },
+  { id: 'financial', icon: 'trending-up', color: '#F5C542', dark: '#D99A1B' },
+  { id: 'rental', icon: 'home', color: '#05D9F0', dark: '#0397C4' },
+  { id: 'subscription', icon: 'repeat', color: '#B48CF2', dark: '#8557D6' },
+  { id: 'insurance', icon: 'shield-checkmark', color: '#1FC3C3', dark: '#028585' },
+  { id: 'vehicle', icon: 'car-sport', color: '#FF9B54', dark: '#E06A1F' },
+  { id: 'employment', icon: 'briefcase', color: '#2FD48E', dark: '#149A61' },
 ];
 
 export function docTypeLabel(id) {
@@ -26,15 +27,15 @@ export function docTypeColor(id) {
 }
 
 function DeckCard({ type, index, selected, onPress }) {
-  const dealt = useRef(new Animated.Value(0)).current; // acilis: dagitma
-  const lift = useRef(new Animated.Value(selected ? 1 : 0)).current; // secim: dikles+buyu
+  const dealt = useRef(new Animated.Value(0)).current; // acilis: desteden dagitma
+  const lift = useRef(new Animated.Value(selected ? 1 : 0)).current; // secim: dikles + buyu
 
   useEffect(() => {
     Animated.timing(dealt, {
       toValue: 1,
-      duration: 380,
-      delay: 90 * index,
-      easing: Easing.out(Easing.back(1.4)),
+      duration: 400,
+      delay: 80 * index,
+      easing: Easing.out(Easing.back(1.5)),
       useNativeDriver: true,
     }).start();
   }, [dealt, index]);
@@ -43,48 +44,65 @@ function DeckCard({ type, index, selected, onPress }) {
     Animated.spring(lift, {
       toValue: selected ? 1 : 0,
       friction: 6,
-      tension: 90,
+      tension: 100,
       useNativeDriver: true,
     }).start();
   }, [lift, selected]);
 
-  const restTilt = index % 2 === 0 ? '-3deg' : '3deg';
+  const restTilt = index % 2 === 0 ? '-3.5deg' : '3.5deg';
   const rotate = lift.interpolate({ inputRange: [0, 1], outputRange: [restTilt, '0deg'] });
-  const scale = lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
-  const translateY = dealt.interpolate({ inputRange: [0, 1], outputRange: [26, 0] });
+  const scale = lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const translateY = dealt.interpolate({ inputRange: [0, 1], outputRange: [30, 0] });
+
+  const face = selected ? (
+    <LinearGradient
+      colors={[type.color, type.dark]}
+      start={{ x: 0.1, y: 0 }}
+      end={{ x: 0.9, y: 1 }}
+      style={[styles.face, styles.faceSelected]}
+    >
+      <View style={styles.iconWrapSelected}>
+        <Ionicons name={type.icon} size={24} color={type.dark} />
+      </View>
+      <Text style={styles.labelSelected} numberOfLines={2}>
+        {docTypeLabel(type.id)}
+      </Text>
+      <View style={styles.checkBadge}>
+        <Ionicons name="checkmark" size={12} color={type.dark} />
+      </View>
+    </LinearGradient>
+  ) : (
+    <View style={[styles.face, styles.faceIdle]}>
+      <View style={[styles.iconWrap, { backgroundColor: type.color + '1F' }]}>
+        <Ionicons name={type.icon + '-outline'} size={24} color={type.color} />
+      </View>
+      <Text style={styles.label} numberOfLines={2}>
+        {docTypeLabel(type.id)}
+      </Text>
+    </View>
+  );
 
   return (
     <Animated.View
       style={{
         opacity: dealt,
         transform: [{ translateY }, { rotate }, { scale }],
+        ...(selected && {
+          shadowColor: type.color,
+          shadowOpacity: 0.6,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
+        }),
       }}
     >
       <Pressable
         onPress={() => onPress(type.id)}
-        style={[
-          styles.card,
-          selected && {
-            borderColor: type.color,
-            shadowColor: type.color,
-            shadowOpacity: 0.55,
-          },
-        ]}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         accessibilityLabel={docTypeLabel(type.id)}
       >
-        <View style={[styles.iconWrap, { backgroundColor: type.color + '22' }]}>
-          <Ionicons name={type.icon} size={22} color={type.color} />
-        </View>
-        <Text style={[styles.label, selected && { color: colors.text }]} numberOfLines={2}>
-          {docTypeLabel(type.id)}
-        </Text>
-        {selected && (
-          <View style={[styles.checkBadge, { backgroundColor: type.color }]}>
-            <Ionicons name="checkmark" size={11} color={colors.bg} />
-          </View>
-        )}
+        {face}
       </Pressable>
     </Animated.View>
   );
@@ -93,7 +111,10 @@ function DeckCard({ type, index, selected, onPress }) {
 export default function DocTypePicker({ value, onChange }) {
   return (
     <View>
-      <Text style={styles.eyebrow}>{t('doctype.title')}</Text>
+      <Text style={styles.eyebrow}>
+        <Text style={styles.eyebrowStar}>◆ </Text>
+        {t('doctype.title')}
+      </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -118,50 +139,70 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.6,
     color: colors.textSoft,
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'center',
   },
+  eyebrowStar: { color: colors.gold },
   deck: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 12,
   },
-  card: {
-    width: 92,
-    minHeight: 96,
+  face: {
+    width: 106,
+    minHeight: 118,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  faceIdle: {
     backgroundColor: colors.cardSoft,
     borderWidth: 1.5,
     borderColor: colors.line,
-    borderRadius: 14,
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    shadowOpacity: 0,
-    elevation: 2,
+  },
+  faceSelected: {
+    borderWidth: 0,
   },
   iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  iconWrapSelected: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   label: {
-    fontSize: 10.5,
+    fontSize: 11.5,
     color: colors.textSoft,
     textAlign: 'center',
-    lineHeight: 13,
+    lineHeight: 14.5,
+  },
+  labelSelected: {
+    fontSize: 11.5,
+    color: '#081233',
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 14.5,
   },
   checkBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
