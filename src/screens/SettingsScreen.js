@@ -32,7 +32,7 @@ export default function SettingsScreen({ navigation }) {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.aboutCard}>
         <Image
-          source={require('../../assets/icon.png')}
+          source={require('../../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />

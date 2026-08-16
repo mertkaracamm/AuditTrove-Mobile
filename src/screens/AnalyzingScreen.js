@@ -89,7 +89,7 @@ export default function AnalyzingScreen({ navigation, route }) {
       <View style={styles.sealArea}>
         <Animated.View style={[styles.ring, { transform: [{ rotate }] }]} />
         <Animated.Image
-          source={require('../../assets/icon.png')}
+          source={require('../../assets/logo.png')}
           style={[styles.logo, { transform: [{ scale: pulse }] }]}
           resizeMode="contain"
         />

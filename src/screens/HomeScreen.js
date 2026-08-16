@@ -76,7 +76,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.settingsIcon}>⚙</Text>
           </Pressable>
           <Image
-            source={require('../../assets/icon.png')}
+            source={require('../../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   pipeline: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
     marginBottom: 18,
   },
@@ -276,12 +276,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.cyan,
   },
-  pipelineLabel: { fontSize: 10.5, color: colors.textSoft },
+  pipelineLabel: { fontSize: 10.5, color: colors.textSoft, textAlign: 'center' },
   pipelineLine: {
     width: 22,
     height: 1,
     backgroundColor: colors.line,
-    marginBottom: 18,
+    marginTop: 14,
   },
   uploadTitle: {
     fontFamily: fonts.display,
