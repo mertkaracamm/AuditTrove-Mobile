@@ -52,6 +52,9 @@ export default {
     'home.supported4': 'Metin içeren diğer PDF belgeler',
     'home.recent': 'SON İNCELEMELER',
     'home.all': 'Tümü',
+    'home.scan': '📷  Kamerayla tara',
+    'home.scanNoTextTitle': 'Metin okunamadı',
+    'home.scanNoText': 'Taranan sayfalarda okunur metin bulunamadı. Daha iyi ışıkta, sayfayı düz tutarak tekrar deneyin.',
     'home.pickError': 'Dosya seçilemedi',
 
     'ob.skip': 'Atla',
@@ -201,6 +204,9 @@ export default {
     'home.supported4': 'Other text-based PDF documents',
     'home.recent': 'RECENT REVIEWS',
     'home.all': 'All',
+    'home.scan': '📷  Scan with camera',
+    'home.scanNoTextTitle': 'No readable text',
+    'home.scanNoText': 'No readable text was found on the scanned pages. Try again in better light, holding the page flat.',
     'home.pickError': 'Could not select file',
 
     'ob.skip': 'Skip',

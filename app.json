@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.audittrove.app",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Belgelerinizi tarayıp incelemek için kamera erişimi gerekir."
       }
     },
     "android": {
@@ -35,7 +36,13 @@
     },
     "owner": "mertkaracam",
     "plugins": [
-      "expo-localization"
+      "expo-localization",
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Belgelerinizi tarayıp incelemek için kamera erişimi gerekir."
+        }
+      ]
     ]
   }
 }

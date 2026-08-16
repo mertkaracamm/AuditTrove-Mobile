@@ -18,6 +18,7 @@ import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
+import { SCAN_ENABLED, scanToPdf } from '../scan/scanner';
 
 const SUPPORTED = [
   t('home.supported1'),
@@ -42,16 +43,20 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
+  async function ensureQuota() {
+    const pro = await checkIsPro();
+    if (pro) return true;
+    const used = await getMonthlyUsage();
+    if (used >= FREE_MONTHLY_LIMIT) {
+      navigation.navigate('Paywall');
+      return false;
+    }
+    return true;
+  }
+
   async function pickDocument() {
     try {
-      const pro = await checkIsPro();
-      if (!pro) {
-        const used = await getMonthlyUsage();
-        if (used >= FREE_MONTHLY_LIMIT) {
-          navigation.navigate('Paywall');
-          return;
-        }
-      }
+      if (!(await ensureQuota())) return;
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
@@ -63,6 +68,21 @@ export default function HomeScreen({ navigation }) {
         docType,
       });
     } catch (e) {
+      Alert.alert(t('home.pickError'), e.message);
+    }
+  }
+
+  async function scanDocument() {
+    try {
+      if (!(await ensureQuota())) return;
+      const file = await scanToPdf();
+      if (!file) return; // iptal
+      navigation.navigate('Analyzing', { file, docType });
+    } catch (e) {
+      if (e && e.code === 'SCAN_NO_TEXT') {
+        Alert.alert(t('home.scanNoTextTitle'), t('home.scanNoText'));
+        return;
+      }
       Alert.alert(t('home.pickError'), e.message);
     }
   }
@@ -122,6 +142,15 @@ export default function HomeScreen({ navigation }) {
               </LinearGradient>
             )}
           </Pressable>
+          {SCAN_ENABLED && (
+            <Pressable onPress={scanDocument}>
+              {({ pressed }) => (
+                <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
+                  <Text style={styles.scanButtonText}>{t('home.scan')}</Text>
+                </View>
+              )}
+            </Pressable>
+          )}
           <Text style={styles.trustNote}>{t('home.trustNote')}</Text>
         </View>
 
@@ -325,6 +354,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadButtonText: { color: colors.bgDeep, fontSize: 15.5, fontWeight: '800' },
+  scanButton: {
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: colors.cyan,
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  scanButtonText: { color: colors.cyan, fontSize: 14.5, fontWeight: '700' },
   sectionEyebrow: {
     fontSize: 11.5,
     fontWeight: '700',
