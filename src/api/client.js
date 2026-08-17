@@ -1,12 +1,11 @@
 // ============================================================
 // AuditTrove API istemcisi
 //
-// SU AN MOCK MODDA CALISIYOR: gercek backend'e istek atmaz,
-// ornek bir inceleme sonucu doner. Backend'i mobile actiginda:
+// Akis ASYNC: belge /audit/async ile is olarak baslatilir, jobId alinir,
+// /audit/jobs/{id} kisa aralikli sorgulanir (polling). Boylece uzun belgelerde
+// tek uzun istek + timeout derdi kalkar; her sorgu birkac saniyedir.
 //
-//   1. USE_MOCK = false yap
-//   2. API_BASE_URL'i kendi adresinle degistir
-//
+// USE_MOCK = true iken gercek backend'e gidilmez, ornek sonuc doner.
 // ============================================================
 
 export const USE_MOCK = false;
@@ -14,7 +13,6 @@ export const API_BASE_URL = 'https://audittrove-production.up.railway.app';
 
 const MOCK_DELAY_MS = 4500;
 
-// cihaz kaydi + token
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOrCreateDeviceId } from './device';
 import { t, getLocale } from '../i18n';
@@ -103,8 +101,29 @@ const MOCK_RESULT = {
   ],
 };
 
+// Async is baslatma icin upload timeout'u (buyuk PDF yuklemesi icin genis)
+const SUBMIT_TIMEOUT_MS = 90000;
+// Polling: her sorgu araligi ve toplam bekleme tavani
+const POLL_INTERVAL_MS = 4000;
+const POLL_MAX_MS = 10 * 60 * 1000; // 10 dk sonra pes et
+const POLL_REQUEST_TIMEOUT_MS = 20000; // tek durum sorgusu icin
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
- * Bir PDF dosyasını incelemeye gönderir.
+ * Bir PDF dosyasını incelemeye gönderir (async akış).
  * @param {{ uri: string, name: string, mimeType?: string }} file
  * @returns {Promise<object>} inceleme sonucu
  */
@@ -114,6 +133,23 @@ export async function auditDocument(file, documentType) {
     return MOCK_RESULT;
   }
 
+  let token = await getDeviceToken();
+
+  // 1) Isi baslat (jobId al). Token duserse bir kez yeniden kaydol.
+  let jobId = await submitJob(file, documentType, token);
+  if (jobId === UNAUTHORIZED) {
+    token = await getDeviceToken(true);
+    jobId = await submitJob(file, documentType, token);
+    if (jobId === UNAUTHORIZED) throw new Error(t('cli.serverError'));
+  }
+
+  // 2) Bitene kadar durumu sorgula
+  return await pollJob(jobId, token);
+}
+
+const UNAUTHORIZED = Symbol('unauthorized');
+
+async function submitJob(file, documentType, token) {
   const formData = new FormData();
   formData.append('language', getLocale());
   formData.append('documentType', documentType || 'general');
@@ -123,57 +159,17 @@ export async function auditDocument(file, documentType) {
     type: file.mimeType || 'application/pdf',
   });
 
-  let token = await getDeviceToken();
-
-  let response = await sendAudit(formData, token, file.size);
-
-  // token duserse bir kez yeniden kaydol
-  if (response.status === 401) {
-    token = await getDeviceToken(true);
-    response = await sendAudit(formData, token, file.size);
-  }
-
-  if (response.status === 402) {
-    const err = new Error(t('cli.monthlyLimit'));
-    err.code = 'MONTHLY_LIMIT_REACHED';
-    throw err;
-  }
-
-  if (response.status === 429) {
-    throw new Error(t('cli.hourlyLimit'));
-  }
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
-  }
-
-  return response.json();
-}
-
-// Belge boyutuna gore timeout: kucuk belge 90 sn taban, buyuk belgede
-// backend chunking devreye girecegi icin MB basina ek sure, tavan 10 dk.
-// 288 sayfalik yillik rapor ~10 OpenAI cagrisi = dakikalar surer, sabit 90 sn yetmez.
-function auditTimeoutMs(fileSizeBytes) {
-  const base = 90000;   // taban 90 sn
-  const perMb = 60000;  // her MB icin +60 sn
-  const mb = (fileSizeBytes || 0) / (1024 * 1024);
-  return Math.min(base + Math.round(mb * perMb), 600000); // tavan 10 dk
-}
-
-async function sendAudit(formData, token, fileSizeBytes) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), auditTimeoutMs(fileSizeBytes));
+  let response;
   try {
-    return await fetch(`${API_BASE_URL}/api/v1/audit`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
+    response = await fetchWithTimeout(
+      `${API_BASE_URL}/api/v1/audit/async`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
       },
-      signal: controller.signal,
-    });
+      SUBMIT_TIMEOUT_MS
+    );
   } catch (e) {
     if (e && e.name === 'AbortError') {
       const err = new Error(t('cli.timeout'));
@@ -181,7 +177,65 @@ async function sendAudit(formData, token, fileSizeBytes) {
       throw err;
     }
     throw new Error(t('cli.networkError'));
-  } finally {
-    clearTimeout(timer);
   }
+
+  if (response.status === 401) return UNAUTHORIZED;
+  if (response.status === 402) {
+    const err = new Error(t('cli.monthlyLimit'));
+    err.code = 'MONTHLY_LIMIT_REACHED';
+    throw err;
+  }
+  if (response.status === 429) throw new Error(t('cli.hourlyLimit'));
+  if (response.status !== 200 && response.status !== 202) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
+  }
+
+  const data = await response.json();
+  if (!data || !data.id) throw new Error(t('cli.serverError'));
+  return data.id;
+}
+
+async function pollJob(jobId, token) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < POLL_MAX_MS) {
+    await sleep(POLL_INTERVAL_MS);
+
+    let response;
+    try {
+      response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/v1/audit/jobs/${jobId}`,
+        { method: 'GET', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
+        POLL_REQUEST_TIMEOUT_MS
+      );
+    } catch (e) {
+      // Tek sorgu takilirsa/kesilirse pes etme; sonraki turda tekrar dene
+      continue;
+    }
+
+    if (response.status === 404) {
+      // Is dustu ya da TTL ile silindi
+      throw new Error(t('cli.timeout'));
+    }
+    if (!response.ok) {
+      continue; // gecici hata olabilir, tekrar dene
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!data) continue;
+
+    if (data.status === 'DONE') {
+      if (!data.result) throw new Error(t('cli.serverError'));
+      return data.result;
+    }
+    if (data.status === 'FAILED') {
+      throw new Error(data.error || t('cli.serverError'));
+    }
+    // PENDING / PROCESSING → beklemeye devam
+  }
+
+  const err = new Error(t('cli.timeout'));
+  err.code = 'TIMEOUT';
+  throw err;
 }
