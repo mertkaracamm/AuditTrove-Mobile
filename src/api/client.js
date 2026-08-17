@@ -125,12 +125,12 @@ export async function auditDocument(file, documentType) {
 
   let token = await getDeviceToken();
 
-  let response = await sendAudit(formData, token);
+  let response = await sendAudit(formData, token, file.size);
 
   // token duserse bir kez yeniden kaydol
   if (response.status === 401) {
     token = await getDeviceToken(true);
-    response = await sendAudit(formData, token);
+    response = await sendAudit(formData, token, file.size);
   }
 
   if (response.status === 402) {
@@ -151,11 +151,19 @@ export async function auditDocument(file, documentType) {
   return response.json();
 }
 
-const AUDIT_TIMEOUT_MS = 90000; // 90 sn: OCR'li buyuk belgelere yeterli, sonsuz beklemeyi onler
+// Belge boyutuna gore timeout: kucuk belge 90 sn taban, buyuk belgede
+// backend chunking devreye girecegi icin MB basina ek sure, tavan 10 dk.
+// 288 sayfalik yillik rapor ~10 OpenAI cagrisi = dakikalar surer, sabit 90 sn yetmez.
+function auditTimeoutMs(fileSizeBytes) {
+  const base = 90000;   // taban 90 sn
+  const perMb = 60000;  // her MB icin +60 sn
+  const mb = (fileSizeBytes || 0) / (1024 * 1024);
+  return Math.min(base + Math.round(mb * perMb), 600000); // tavan 10 dk
+}
 
-async function sendAudit(formData, token) {
+async function sendAudit(formData, token, fileSizeBytes) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AUDIT_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), auditTimeoutMs(fileSizeBytes));
   try {
     return await fetch(`${API_BASE_URL}/api/v1/audit`, {
       method: 'POST',
