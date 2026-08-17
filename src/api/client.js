@@ -105,7 +105,7 @@ const MOCK_RESULT = {
 const SUBMIT_TIMEOUT_MS = 90000;
 // Polling: her sorgu araligi ve toplam bekleme tavani
 const POLL_INTERVAL_MS = 4000;
-const POLL_MAX_MS = 10 * 60 * 1000; // 10 dk sonra pes et
+const POLL_MAX_MS = 20 * 60 * 1000; // 20 dk: buyuk belge tam islenirken (~18 bolum) yeterli sure
 const POLL_REQUEST_TIMEOUT_MS = 20000; // tek durum sorgusu icin
 
 function sleep(ms) {
