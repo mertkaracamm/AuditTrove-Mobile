@@ -82,7 +82,7 @@ export default function ResultScreen({ navigation, route }) {
           >
             {keyMetrics.map((m, i) => (
               <View key={i} style={styles.metricCard}>
-                <Text style={styles.metricLabel} numberOfLines={1}>
+                <Text style={styles.metricLabel} numberOfLines={2}>
                   {(m.label || '').toLocaleUpperCase(
                     getLocale() === 'tr' ? 'tr-TR' : 'en-US'
                   )}
@@ -280,6 +280,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: colors.textSoft,
     marginBottom: 4,
+    lineHeight: 14,
+    // Iki satirlik sabit yukseklik: tek ve cift satirli basliklarda deger ayni hizada baslar
+    minHeight: 28,
   },
   metricValue: {
     fontFamily: fonts.mono,
