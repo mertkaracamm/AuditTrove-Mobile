@@ -144,6 +144,8 @@ export default {
     'cli.deviceRegFail': 'Cihaz kaydı yapılamadı. Lütfen daha sonra tekrar deneyin.',
     'cli.monthlyLimit': 'Aylık ücretsiz inceleme hakkınız doldu.',
     'cli.hourlyLimit': 'Saatlik inceleme limitine ulaşıldı. Lütfen bir süre sonra tekrar deneyin.',
+    'cli.timeout': 'İnceleme zaman aşımına uğradı. Belge çok büyük olabilir ya da bağlantı yavaş; lütfen tekrar deneyin.',
+    'cli.networkError': 'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.',
     'cli.serverError': 'Sunucu hatası',
     'cli.unknownError': 'bilinmeyen hata',
 
@@ -300,6 +302,8 @@ export default {
     'cli.deviceRegFail': 'Device registration failed. Please try again later.',
     'cli.monthlyLimit': 'You have used all your free reviews for this month.',
     'cli.hourlyLimit': 'Hourly review limit reached. Please try again in a while.',
+    'cli.timeout': 'The review timed out. The document may be too large or the connection slow; please try again.',
+    'cli.networkError': 'Could not connect. Check your internet and try again.',
     'cli.serverError': 'Server error',
     'cli.unknownError': 'unknown error',
 

@@ -151,13 +151,29 @@ export async function auditDocument(file, documentType) {
   return response.json();
 }
 
-function sendAudit(formData, token) {
-  return fetch(`${API_BASE_URL}/api/v1/audit`, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+const AUDIT_TIMEOUT_MS = 90000; // 90 sn: OCR'li buyuk belgelere yeterli, sonsuz beklemeyi onler
+
+async function sendAudit(formData, token) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AUDIT_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_BASE_URL}/api/v1/audit`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e && e.name === 'AbortError') {
+      const err = new Error(t('cli.timeout'));
+      err.code = 'TIMEOUT';
+      throw err;
+    }
+    throw new Error(t('cli.networkError'));
+  } finally {
+    clearTimeout(timer);
+  }
 }
