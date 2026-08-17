@@ -88,6 +88,7 @@ export default {
     'res.steps': 'ÖNERİLEN ADIMLAR',
     'res.refs': 'RAPOR REFERANSLARI',
     'res.newReview': 'Yeni inceleme başlat',
+    'res.scanNote': 'Bu inceleme, taranmış görüntüden okunan metinle üretildi. Özellikle el yazısı tutar ve tarihleri belgenin aslından teyit edin.',
     'res.disclaimer': 'Bu çıktı bir karar destek raporudur; finansal, muhasebe, yatırım, vergi veya hukuk danışmanlığı değildir. Bulgular ve referanslar, esas alınmadan önce uzman bir kişi tarafından doğrulanmalıdır.',
 
     'his.emptyTitle': 'Henüz inceleme yok',
@@ -243,6 +244,7 @@ export default {
     'res.steps': 'RECOMMENDED ACTIONS',
     'res.refs': 'REPORT REFERENCES',
     'res.newReview': 'Start a new review',
+    'res.scanNote': 'This review was produced from text read off a scanned image. Verify amounts and dates, especially handwritten ones, against the original document.',
     'res.disclaimer': 'This output is a decision-support report; it is not financial, accounting, investment, tax, or legal advice. Findings and references must be verified by a qualified professional before being relied upon.',
 
     'his.emptyTitle': 'No reviews yet',

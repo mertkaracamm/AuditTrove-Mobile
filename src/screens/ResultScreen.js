@@ -8,6 +8,7 @@ import { t, getLocale } from '../i18n';
 export default function ResultScreen({ navigation, route }) {
   const { result, fileName, docType } = route.params;
   const isFinancial = !docType || docType === 'financial';
+  const isScanned = typeof fileName === 'string' && fileName.startsWith('tarama-');
   const risks = result.risks || [];
   const recommendations = result.recommendations || [];
   const references = result.references || [];
@@ -217,6 +218,9 @@ export default function ResultScreen({ navigation, route }) {
         )}
       </Pressable>
 
+      {isScanned && (
+        <Text style={styles.scanNote}>{t('res.scanNote')}</Text>
+      )}
       <Text style={styles.disclaimer}>{t('res.disclaimer')}</Text>
     </ScrollView>
   );
@@ -370,6 +374,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   doneButtonText: { color: colors.bgDeep, fontSize: 15.5, fontWeight: '800' },
+  scanNote: {
+    fontSize: 11.5,
+    color: colors.riskMid,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 14,
+    paddingHorizontal: 18,
+    lineHeight: 16,
+  },
   disclaimer: {
     fontSize: 11.5,
     lineHeight: 16,
