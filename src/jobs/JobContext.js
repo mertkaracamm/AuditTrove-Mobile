@@ -15,7 +15,7 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { startAuditJob, pollAuditJobOnce, registerPushToken } from '../api/client';
+import { startAuditJob, pollAuditJobOnce, registerPushToken, cancelAuditJob } from '../api/client';
 import { addToHistory } from '../storage/history';
 import { incrementMonthlyUsage } from '../storage/usage';
 import { registerForPush } from '../notifications';
@@ -174,8 +174,13 @@ export function JobProvider({ children }) {
 
   const clearFailed = useCallback(() => setFailedJob(null), []);
 
-  // Kullanici incelemeyi iptal eder: polling durur, aktif is birakilir.
+  // Kullanici incelemeyi iptal eder: backend'e haber ver (push/kota gondermesin),
+  // polling'i durdur, aktif isi birak.
   const cancelJob = useCallback(async () => {
+    const job = activeRef.current;
+    if (job && job.id) {
+      cancelAuditJob(job.id).catch(() => {});
+    }
     await persist(null);
     setActiveJob(null);
     setCompletedJob(null);

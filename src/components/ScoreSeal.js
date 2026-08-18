@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, riskColor, riskLabel } from '../theme';
 
-// Yatay skor gostergesi: yesil→sari→turuncu→kirmizi gradient uzerinde,
-// skora gore 0'dan dolan parlak bir bar + skorun yerini gosteren isaretci.
-// Dusuk skor (temiz) solda/yesilde, yuksek skor (dikkat) sagda/kirmizida.
-const GRAD = ['#2FD48E', '#F5C542', '#FF8A5B', '#E0453A']; // yesil→sari→turuncu→kirmizi
+// Yatay skor gostergesi: kirmizi→turuncu→sari→yesil gradient uzerinde,
+// skora gore 0'dan dolan parlak bir bar. YUKSEK skor (temiz) sagda/yesilde,
+// DUSUK skor (dikkat) solda/kirmizida — sezgisel: dolu bar = temiz belge.
+const GRAD = ['#E0453A', '#FF8A5B', '#F5C542', '#2FD48E']; // kirmizi→turuncu→sari→yesil
 
 export default function ScoreSeal({ score }) {
   const clamped = Math.max(0, Math.min(100, score));

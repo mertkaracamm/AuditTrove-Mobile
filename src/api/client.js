@@ -220,3 +220,19 @@ export async function registerPushToken(pushToken) {
     // sessiz
   }
 }
+
+/**
+ * Devam eden async incelemeyi iptal eder (backend push/kota gondermesin). Sessiz basarisiz olur.
+ */
+export async function cancelAuditJob(jobId) {
+  if (USE_MOCK || !jobId || (typeof jobId === 'string' && jobId.startsWith('mock:'))) return;
+  try {
+    const token = await getDeviceToken();
+    await fetch(`${API_BASE_URL}/api/v1/audit/jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+  } catch (e) {
+    // sessiz
+  }
+}

@@ -39,26 +39,28 @@ export const fonts = {
 };
 
 // Eşikler backend'deki calibrateScore bantlarıyla birebir aynı:
-// 0-20 düşük, 21-45 orta, 46-70 yüksek, 71-100 kritik.
+// YUKSEK skor = temiz/guvenli (yesil), DUSUK skor = dikkat (kirmizi).
+// Kullanici sezgisi: 100'e yakin iyi, 0'a yakin dikkat gerektiriyor.
+// 80-100 temiz, 55-79 gozden gecir, 30-54 dikkatle, 0-29 madde madde.
 export function riskColor(score) {
-  if (score >= 71) return colors.riskCritical;
-  if (score >= 46) return colors.riskHigh;
-  if (score >= 21) return colors.riskMid;
-  return colors.riskLow;
+  if (score >= 80) return colors.riskLow;      // yesil — temiz
+  if (score >= 55) return colors.riskMid;      // sari — gozden gecir
+  if (score >= 30) return colors.riskHigh;     // turuncu — dikkatle
+  return colors.riskCritical;                  // kirmizi — madde madde
 }
 
 export function riskBg(score) {
-  if (score >= 71) return colors.riskCriticalBg;
-  if (score >= 46) return colors.riskHighBg;
-  if (score >= 21) return colors.riskMidBg;
-  return colors.riskLowBg;
+  if (score >= 80) return colors.riskLowBg;
+  if (score >= 55) return colors.riskMidBg;
+  if (score >= 30) return colors.riskHighBg;
+  return colors.riskCriticalBg;
 }
 
 export function riskLabel(score) {
-  if (score >= 71) return t('risk.criticalLabel');
-  if (score >= 46) return t('risk.highLabel');
-  if (score >= 21) return t('risk.midLabel');
-  return t('risk.lowLabel');
+  if (score >= 80) return t('risk.lowLabel');       // Genel olarak temiz
+  if (score >= 55) return t('risk.midLabel');       // Gözden geçir
+  if (score >= 30) return t('risk.highLabel');      // Dikkatle incele
+  return t('risk.criticalLabel');                   // Madde madde incele
 }
 
 export const severityMap = {
