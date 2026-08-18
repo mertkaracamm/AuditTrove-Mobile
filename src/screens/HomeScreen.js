@@ -54,6 +54,11 @@ export default function HomeScreen({ navigation }) {
       navigation.navigate('Paywall');
       return;
     }
+    if (r.code === 'RATE_LIMITED') {
+      // Saatlik hiz siniri — abonelik cozmez, Paywall'a GITME; sadece bilgilendir.
+      Alert.alert(t('home.rateLimitTitle'), (r.error && r.error.message) || t('cli.hourlyLimit'));
+      return;
+    }
     Alert.alert(t('home.pickError'), (r.error && r.error.message) || t('cli.serverError'));
   }
 

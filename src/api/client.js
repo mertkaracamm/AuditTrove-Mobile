@@ -137,7 +137,11 @@ async function submitOnce(file, documentType, token) {
     err.code = 'MONTHLY_LIMIT_REACHED';
     throw err;
   }
-  if (response.status === 429) throw new Error(t('cli.hourlyLimit'));
+  if (response.status === 429) {
+    const err = new Error(t('cli.hourlyLimit'));
+    err.code = 'RATE_LIMITED';
+    throw err;
+  }
   if (response.status !== 200 && response.status !== 202) {
     const text = await response.text().catch(() => '');
     throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
