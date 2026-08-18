@@ -1,140 +1,116 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import Svg, {
-  Circle,
-  Line,
-  G,
-  Defs,
-  LinearGradient,
-  Stop,
-  Path,
-} from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, riskColor, riskLabel } from '../theme';
-import { getLocale } from '../i18n';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// Yatay skor gostergesi: yesil→sari→turuncu→kirmizi gradient uzerinde,
+// skora gore 0'dan dolan parlak bir bar + skorun yerini gosteren isaretci.
+// Dusuk skor (temiz) solda/yesilde, yuksek skor (dikkat) sagda/kirmizida.
+const GRAD = ['#2FD48E', '#F5C542', '#FF8A5B', '#E0453A']; // yesil→sari→turuncu→kirmizi
 
-// İmza öğesi: parlayan denetim mührü.
-// Cyan→teal gradient yay, mühür dişleri, tepede altın "trove" yıldızı,
-// skor yükleme animasyonuyla dolar.
-export default function ScoreSeal({ score, size = 220 }) {
-  const stroke = 13;
-  const r = (size - stroke) / 2 - 16;
-  const c = 2 * Math.PI * r;
-  const target = Math.max(0, Math.min(100, score)) / 100;
+export default function ScoreSeal({ score }) {
+  const clamped = Math.max(0, Math.min(100, score));
   const color = riskColor(score);
-  const center = size / 2;
-
+  const [barW, setBarW] = useState(0);
   const anim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    if (barW <= 0) return;
+    anim.setValue(0);
     Animated.timing(anim, {
-      toValue: target,
-      duration: 1200,
+      toValue: clamped / 100,
+      duration: 1150,
       useNativeDriver: false,
     }).start();
-  }, [target]);
+  }, [clamped, barW]);
 
-  const dashOffset = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [c, 0],
-  });
-
-  const ticks = [];
-  const tickOuter = size / 2 - 2;
-  const tickInner = size / 2 - 10;
-  for (let i = 0; i < 60; i++) {
-    const angle = (i / 60) * 2 * Math.PI;
-    ticks.push(
-      <Line
-        key={i}
-        x1={center + tickInner * Math.cos(angle)}
-        y1={center + tickInner * Math.sin(angle)}
-        x2={center + tickOuter * Math.cos(angle)}
-        y2={center + tickOuter * Math.sin(angle)}
-        stroke={colors.line}
-        strokeWidth={1.5}
-      />
-    );
-  }
-
-  // Tepedeki küçük altın yıldız (logodaki "trove" motifi)
-  const starY = center - r - 2;
-  const s = 7;
-  const star = `M ${center} ${starY - s} L ${center + s * 0.35} ${starY - s * 0.35} L ${center + s} ${starY} L ${center + s * 0.35} ${starY + s * 0.35} L ${center} ${starY + s} L ${center - s * 0.35} ${starY + s * 0.35} L ${center - s} ${starY} L ${center - s * 0.35} ${starY - s * 0.35} Z`;
+  const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: [0, barW] });
+  const markerLeft = anim.interpolate({ inputRange: [0, 1], outputRange: [0, barW] });
 
   return (
-    <View style={[styles.wrap, { width: size, height: size }]}>
-      <View style={[styles.glow, { backgroundColor: color }]} />
-      <Svg width={size} height={size}>
-        <Defs>
-          <LinearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={colors.cyan} />
-            <Stop offset="1" stopColor={color} />
-          </LinearGradient>
-        </Defs>
-        <G>{ticks}</G>
-        <Circle
-          cx={center}
-          cy={center}
-          r={r}
-          stroke={colors.line}
-          strokeWidth={stroke}
-          fill="none"
-          opacity={0.6}
-        />
-        <AnimatedCircle
-          cx={center}
-          cy={center}
-          r={r}
-          stroke="url(#arc)"
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${c} ${c}`}
-          strokeDashoffset={dashOffset}
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-        <Path d={star} fill={colors.gold} />
-      </Svg>
-      <View style={styles.center}>
-        <Text style={[styles.score, { color: colors.text }]}>{score}</Text>
+    <View style={styles.wrap}>
+      <View style={styles.numRow}>
+        <Text style={styles.num}>{score}</Text>
         <Text style={styles.of}>/ 100</Text>
-        <View style={[styles.labelChip, { borderColor: color }]}>
-          <Text style={[styles.label, { color }]}>{riskLabel(score).toLocaleUpperCase(getLocale() === 'tr' ? 'tr-TR' : 'en-US')}</Text>
-        </View>
+      </View>
+
+      <View
+        style={styles.track}
+        onLayout={(e) => setBarW(e.nativeEvent.layout.width)}
+      >
+        {/* Tum skala — soluk gradient (nerede oldugunu baglamlar) */}
+        <LinearGradient
+          colors={GRAD}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[StyleSheet.absoluteFill, styles.rounded, { opacity: 0.2 }]}
+        />
+        {/* Dolan parlak kisim: 0 → skor. Ic gradient tam bar genisligindedir ki
+            renkler skalaya sabitli kalsin (dolan kisim gercek rengini gostersin). */}
+        <Animated.View style={[styles.fillClip, { width: fillWidth }]}>
+          <LinearGradient
+            colors={GRAD}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ width: barW, height: '100%' }}
+          />
+        </Animated.View>
+        {/* Skorun tam yerini gosteren isaretci */}
+        <Animated.View
+          style={[styles.marker, { left: markerLeft, backgroundColor: color }]}
+        />
+      </View>
+
+      <View style={[styles.chip, { borderColor: color }]}>
+        <Text style={[styles.chipText, { color }]} numberOfLines={1}>
+          {riskLabel(score)}
+        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-  glow: {
+  wrap: { alignItems: 'center', width: '100%', paddingHorizontal: 6 },
+  numRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 16 },
+  num: { fontFamily: fonts.mono, fontSize: 60, fontWeight: '700', letterSpacing: -1.5, color: colors.text },
+  of: { fontFamily: fonts.mono, fontSize: 16, color: colors.textSoft, marginBottom: 12, marginLeft: 5 },
+  track: {
+    width: '100%',
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+  },
+  rounded: { borderRadius: 999 },
+  fillClip: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    opacity: 0.12,
-    transform: [{ scale: 1.4 }],
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
-  center: { position: 'absolute', alignItems: 'center' },
-  score: {
-    fontFamily: fonts.mono,
-    fontSize: 48,
-    fontWeight: '700',
-    letterSpacing: -1,
+  marker: {
+    position: 'absolute',
+    width: 5,
+    height: 28,
+    borderRadius: 3,
+    marginLeft: -2.5,
+    top: -6,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
-  of: { fontFamily: fonts.mono, fontSize: 13, color: colors.textSoft, marginTop: -2 },
-  labelChip: {
-    marginTop: 8,
+  chip: {
+    marginTop: 20,
     borderWidth: 1,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  chipText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
 });
