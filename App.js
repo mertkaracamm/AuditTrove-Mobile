@@ -15,6 +15,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PaywallScreen from './src/screens/PaywallScreen';
 import { initPurchases } from './src/api/purchases';
+import { JobProvider } from './src/jobs/JobContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +47,7 @@ export default function App() {
   }
 
   return (
+    <JobProvider>
     <NavigationContainer theme={navTheme}>
       <StatusBar style="light" />
       <Stack.Navigator
@@ -78,5 +80,6 @@ export default function App() {
         />
       </Stack.Navigator>
     </NavigationContainer>
+    </JobProvider>
   );
 }

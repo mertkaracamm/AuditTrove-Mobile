@@ -19,6 +19,7 @@ import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
 import { SCAN_ENABLED, PHOTOS_ENABLED, scanToPdf, pickPhotosToPdf } from '../scan/scanner';
+import { useJob } from '../jobs/JobContext';
 
 const SUPPORTED = [
   t('home.supported1'),
@@ -36,6 +37,25 @@ const PIPELINE = [
 export default function HomeScreen({ navigation }) {
   const [docType, setDocType] = React.useState('general');
   const [recent, setRecent] = useState([]);
+  const { activeJob, completedJob, failedJob, startJob, consumeCompleted, clearFailed } = useJob();
+
+  // Isi baslat: JobContext arka planda takip eder; Analyzing sadece gosterir.
+  async function launchJob(file) {
+    if (activeJob) {
+      Alert.alert(t('home.jobActive'), t('home.jobBusy'));
+      return;
+    }
+    const r = await startJob(file, docType);
+    if (r.ok) {
+      navigation.navigate('Analyzing');
+      return;
+    }
+    if (r.code === 'MONTHLY_LIMIT_REACHED') {
+      navigation.navigate('Paywall');
+      return;
+    }
+    Alert.alert(t('home.pickError'), (r.error && r.error.message) || t('cli.serverError'));
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -63,10 +83,7 @@ export default function HomeScreen({ navigation }) {
       });
       if (result.canceled) return;
       const file = result.assets[0];
-      navigation.navigate('Analyzing', {
-        file: { uri: file.uri, name: file.name, mimeType: file.mimeType },
-        docType,
-      });
+      await launchJob({ uri: file.uri, name: file.name, mimeType: file.mimeType });
     } catch (e) {
       Alert.alert(t('home.pickError'), e.message);
     }
@@ -77,7 +94,7 @@ export default function HomeScreen({ navigation }) {
       if (!(await ensureQuota())) return;
       const file = await producer();
       if (!file) return; // iptal
-      navigation.navigate('Analyzing', { file, docType });
+      await launchJob(file);
     } catch (e) {
       if (e && e.code === 'SCAN_NO_TEXT') {
         Alert.alert(t('home.scanNoTextTitle'), t('home.scanNoText'));
@@ -118,6 +135,45 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
         </LinearGradient>
+
+        {activeJob && (
+          <Pressable style={styles.jobCard} onPress={() => navigation.navigate('Analyzing')}>
+            <View style={[styles.jobDot, { backgroundColor: colors.cyan }]} />
+            <View style={styles.jobInfo}>
+              <Text style={styles.jobTitle}>{t('home.jobActive')}</Text>
+              <Text style={styles.jobName} numberOfLines={1}>{activeJob.fileName}</Text>
+            </View>
+            <Text style={styles.jobAction}>{t('home.jobTap')}</Text>
+          </Pressable>
+        )}
+
+        {!activeJob && completedJob && (
+          <Pressable
+            style={styles.jobCard}
+            onPress={() => {
+              const c = consumeCompleted();
+              if (c) navigation.navigate('Result', { result: c.result, fileName: c.fileName, docType: c.docType });
+            }}
+          >
+            <View style={[styles.jobDot, { backgroundColor: colors.riskLow }]} />
+            <View style={styles.jobInfo}>
+              <Text style={styles.jobTitle}>{t('home.jobReady')}</Text>
+              <Text style={styles.jobName} numberOfLines={1}>{completedJob.fileName}</Text>
+            </View>
+            <Text style={[styles.jobAction, { color: colors.riskLow }]}>{t('home.jobView')}</Text>
+          </Pressable>
+        )}
+
+        {!activeJob && failedJob && (
+          <Pressable style={styles.jobCard} onPress={() => clearFailed()}>
+            <View style={[styles.jobDot, { backgroundColor: colors.riskHigh }]} />
+            <View style={styles.jobInfo}>
+              <Text style={styles.jobTitle}>{t('home.jobFailed')}</Text>
+              <Text style={styles.jobName} numberOfLines={1}>{failedJob.fileName}</Text>
+            </View>
+            <Text style={[styles.jobAction, { color: colors.textSoft }]}>✕</Text>
+          </Pressable>
+        )}
 
         <View style={styles.uploadCard}>
           <View style={styles.pipeline}>
@@ -298,6 +354,23 @@ const styles = StyleSheet.create({
     color: colors.gold,
     letterSpacing: 1,
   },
+  jobCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
+  },
+  jobDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
+  jobInfo: { flex: 1 },
+  jobTitle: { fontSize: 13, fontWeight: '700', color: colors.text, letterSpacing: 0.3 },
+  jobName: { fontFamily: fonts.mono, fontSize: 12, color: colors.textSoft, marginTop: 2 },
+  jobAction: { fontSize: 13.5, fontWeight: '600', color: colors.cyan, marginLeft: 10 },
   uploadCard: {
     backgroundColor: colors.card,
     borderRadius: 18,

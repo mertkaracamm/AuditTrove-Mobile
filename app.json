@@ -57,6 +57,12 @@
         {
           "photosPermission": "Belgelerinizin fotoğraflarını seçip incelemek için fotoğraflarınıza erişim gerekir."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#05D9F0"
+        }
       ]
     ]
   }

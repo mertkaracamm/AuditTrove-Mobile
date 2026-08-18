@@ -1,11 +1,9 @@
 // ============================================================
-// AuditTrove API istemcisi
+// AuditTrove API istemcisi (async job tabanli)
 //
-// Akis ASYNC: belge /audit/async ile is olarak baslatilir, jobId alinir,
-// /audit/jobs/{id} kisa aralikli sorgulanir (polling). Boylece uzun belgelerde
-// tek uzun istek + timeout derdi kalkar; her sorgu birkac saniyedir.
-//
-// USE_MOCK = true iken gercek backend'e gidilmez, ornek sonuc doner.
+// Is /audit/async ile baslatilir (jobId), /audit/jobs/{id} sorgulanir.
+// Polling'i JobContext yurutur; burada tekil "baslat" ve "bir kez sorgula" var.
+// USE_MOCK = true iken gercek backend'e gidilmez.
 // ============================================================
 
 export const USE_MOCK = false;
@@ -24,17 +22,13 @@ async function getDeviceToken(forceRefresh = false) {
     const cached = await AsyncStorage.getItem(TOKEN_KEY);
     if (cached) return cached;
   }
-
   const deviceId = await getOrCreateDeviceId();
-
   const response = await fetch(`${API_BASE_URL}/api/v1/devices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ deviceId }),
   });
-  if (!response.ok) {
-    throw new Error(t('cli.deviceRegFail'));
-  }
+  if (!response.ok) throw new Error(t('cli.deviceRegFail'));
   const data = await response.json();
   await AsyncStorage.setItem(TOKEN_KEY, data.token);
   return data.token;
@@ -56,8 +50,7 @@ const MOCK_RESULT = {
         's. 42, Nakit Akış Tablosu: "İşletme faaliyetlerinden nakit akışı önceki döneme göre %38 azalmıştır."',
       explanation:
         'Cari oran ve işletme sermayesindeki eş zamanlı düşüş, kısa vadeli ' +
-        'yükümlülüklerin karşılanma kapasitesinin zayıfladığına işaret ediyor. ' +
-        'Nakit akış projeksiyonlarının ve kredi limitlerinin gözden geçirilmesi önerilir.',
+        'yükümlülüklerin karşılanma kapasitesinin zayıfladığına işaret ediyor.',
     },
     {
       title: 'Alacakların tek müşteri grubunda yoğunlaşması',
@@ -65,17 +58,14 @@ const MOCK_RESULT = {
       evidence:
         's. 57, Ticari Alacaklar dipnotu: "Ticari alacakların %61\u2019i tek bir müşteri grubuna aittir."',
       explanation:
-        'Alacak portföyünün bu ölçüde yoğunlaşması, karşı taraf riskini önemli ölçüde ' +
-        'artırır. İlgili müşteri grubunun ödeme geçmişi ve teminat yapısı ayrıca incelenmelidir.',
+        'Alacak portföyünün bu ölçüde yoğunlaşması, karşı taraf riskini önemli ölçüde artırır.',
     },
     {
       title: 'Koşullu yükümlülüklere ilişkin sınırlı açıklama',
       severity: 'MEDIUM',
       evidence: 's. 63: "Devam eden davalara ilişkin karşılık ayrılmamıştır."',
       explanation:
-        'Devam eden hukuki süreçlerin tutarı ve olasılık değerlendirmesi raporda ' +
-        'açıklanmamış. Olası yükümlülüklerin büyüklüğü, finansal tablolar üzerinde ' +
-        'önemli etki yaratabilir.',
+        'Devam eden hukuki süreçlerin tutarı ve olasılık değerlendirmesi raporda açıklanmamış.',
     },
     {
       title: 'Stok devir hızında yavaşlama',
@@ -83,8 +73,7 @@ const MOCK_RESULT = {
       evidence:
         's. 38: "Stoklar önceki döneme göre %24 artarken satışlar %6 artmıştır."',
       explanation:
-        'Stok artışının satış büyümesinin belirgin üzerinde olması, değer düşüklüğü ' +
-        'riski taşıyan yavaş hareket eden stokların varlığına işaret edebilir.',
+        'Stok artışının satış büyümesinin belirgin üzerinde olması, değer düşüklüğü riskine işaret edebilir.',
     },
   ],
   recommendations: [
@@ -101,16 +90,8 @@ const MOCK_RESULT = {
   ],
 };
 
-// Async is baslatma icin upload timeout'u (buyuk PDF yuklemesi icin genis)
-const SUBMIT_TIMEOUT_MS = 90000;
-// Polling: her sorgu araligi ve toplam bekleme tavani
-const POLL_INTERVAL_MS = 4000;
-const POLL_MAX_MS = 20 * 60 * 1000; // 20 dk: buyuk belge tam islenirken (~18 bolum) yeterli sure
-const POLL_REQUEST_TIMEOUT_MS = 20000; // tek durum sorgusu icin
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const SUBMIT_TIMEOUT_MS = 90000; // buyuk PDF upload'u icin genis
+const POLL_REQUEST_TIMEOUT_MS = 20000; // tek durum sorgusu
 
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -122,34 +103,9 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
-/**
- * Bir PDF dosyasını incelemeye gönderir (async akış).
- * @param {{ uri: string, name: string, mimeType?: string }} file
- * @returns {Promise<object>} inceleme sonucu
- */
-export async function auditDocument(file, documentType) {
-  if (USE_MOCK) {
-    await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
-    return MOCK_RESULT;
-  }
-
-  let token = await getDeviceToken();
-
-  // 1) Isi baslat (jobId al). Token duserse bir kez yeniden kaydol.
-  let jobId = await submitJob(file, documentType, token);
-  if (jobId === UNAUTHORIZED) {
-    token = await getDeviceToken(true);
-    jobId = await submitJob(file, documentType, token);
-    if (jobId === UNAUTHORIZED) throw new Error(t('cli.serverError'));
-  }
-
-  // 2) Bitene kadar durumu sorgula
-  return await pollJob(jobId, token);
-}
-
 const UNAUTHORIZED = Symbol('unauthorized');
 
-async function submitJob(file, documentType, token) {
+async function submitOnce(file, documentType, token) {
   const formData = new FormData();
   formData.append('language', getLocale());
   formData.append('documentType', documentType || 'general');
@@ -163,11 +119,7 @@ async function submitJob(file, documentType, token) {
   try {
     response = await fetchWithTimeout(
       `${API_BASE_URL}/api/v1/audit/async`,
-      {
-        method: 'POST',
-        body: formData,
-        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-      },
+      { method: 'POST', body: formData, headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
       SUBMIT_TIMEOUT_MS
     );
   } catch (e) {
@@ -190,52 +142,77 @@ async function submitJob(file, documentType, token) {
     const text = await response.text().catch(() => '');
     throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
   }
-
   const data = await response.json();
   if (!data || !data.id) throw new Error(t('cli.serverError'));
   return data.id;
 }
 
-async function pollJob(jobId, token) {
-  const startedAt = Date.now();
+/**
+ * Inceleme isini baslatir, jobId doner. (Mock modda 'mock:...' doner.)
+ * @returns {Promise<{ id: string }>}
+ */
+export async function startAuditJob(file, documentType) {
+  if (USE_MOCK) {
+    return { id: `mock:${Date.now()}` };
+  }
+  let token = await getDeviceToken();
+  let id = await submitOnce(file, documentType, token);
+  if (id === UNAUTHORIZED) {
+    token = await getDeviceToken(true);
+    id = await submitOnce(file, documentType, token);
+    if (id === UNAUTHORIZED) throw new Error(t('cli.serverError'));
+  }
+  return { id };
+}
 
-  while (Date.now() - startedAt < POLL_MAX_MS) {
-    await sleep(POLL_INTERVAL_MS);
-
-    let response;
-    try {
-      response = await fetchWithTimeout(
-        `${API_BASE_URL}/api/v1/audit/jobs/${jobId}`,
-        { method: 'GET', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
-        POLL_REQUEST_TIMEOUT_MS
-      );
-    } catch (e) {
-      // Tek sorgu takilirsa/kesilirse pes etme; sonraki turda tekrar dene
-      continue;
-    }
-
-    if (response.status === 404) {
-      // Is dustu ya da TTL ile silindi
-      throw new Error(t('cli.timeout'));
-    }
-    if (!response.ok) {
-      continue; // gecici hata olabilir, tekrar dene
-    }
-
-    const data = await response.json().catch(() => null);
-    if (!data) continue;
-
-    if (data.status === 'DONE') {
-      if (!data.result) throw new Error(t('cli.serverError'));
-      return data.result;
-    }
-    if (data.status === 'FAILED') {
-      throw new Error(data.error || t('cli.serverError'));
-    }
-    // PENDING / PROCESSING → beklemeye devam
+/**
+ * Is durumunu BIR kez sorgular. Polling'i cagiran yonetir.
+ * @returns {Promise<{ status: 'PENDING'|'PROCESSING'|'DONE'|'FAILED'|'GONE', result?: object, error?: string }>}
+ */
+export async function pollAuditJobOnce(jobId) {
+  if (typeof jobId === 'string' && jobId.startsWith('mock:')) {
+    const started = parseInt(jobId.slice(5), 10) || 0;
+    if (Date.now() - started >= MOCK_DELAY_MS) return { status: 'DONE', result: MOCK_RESULT };
+    return { status: 'PROCESSING' };
   }
 
-  const err = new Error(t('cli.timeout'));
-  err.code = 'TIMEOUT';
-  throw err;
+  const token = await getDeviceToken();
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      `${API_BASE_URL}/api/v1/audit/jobs/${jobId}`,
+      { method: 'GET', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
+      POLL_REQUEST_TIMEOUT_MS
+    );
+  } catch (e) {
+    return { status: 'PROCESSING' }; // gecici hata → sonraki turda tekrar
+  }
+
+  if (response.status === 404) return { status: 'GONE' };
+  if (!response.ok) return { status: 'PROCESSING' };
+
+  const data = await response.json().catch(() => null);
+  if (!data || !data.status) return { status: 'PROCESSING' };
+  return { status: data.status, result: data.result, error: data.error };
+}
+
+/**
+ * Cihazin Expo push token'ini backend'e kaydeder (auth'lu). Sessiz basarisiz olur.
+ */
+export async function registerPushToken(pushToken) {
+  if (USE_MOCK || !pushToken) return;
+  try {
+    const token = await getDeviceToken();
+    await fetch(`${API_BASE_URL}/api/v1/devices/push-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pushToken }),
+    });
+  } catch (e) {
+    // sessiz
+  }
 }
