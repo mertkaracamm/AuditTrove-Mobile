@@ -24,7 +24,7 @@ function fmtElapsed(sec) {
 }
 
 export default function AnalyzingScreen({ navigation, route }) {
-  const { activeJob, completedJob, failedJob, consumeCompleted, clearFailed } = useJob();
+  const { activeJob, completedJob, failedJob, consumeCompleted, clearFailed, cancelJob } = useJob();
   const [stepIndex, setStepIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [liveIndex, setLiveIndex] = useState(0);
@@ -71,13 +71,22 @@ export default function AnalyzingScreen({ navigation, route }) {
     };
   }, []);
 
-  // Is bitince otomatik Result'a gec (kullanici bu ekranda bekliyorsa) — bir kez
+  // Is bitince otomatik Result'a gec (kullanici bu ekranda bekliyorsa) — bir kez.
+  // reset ile yigin [Home, Result] kurulur; boylece Result'ta "Geri" her zaman Home'a doner.
   useEffect(() => {
     if (handledRef.current) return;
     if (completedJob) {
       handledRef.current = true;
       const c = consumeCompleted();
-      if (c) navigation.replace('Result', { result: c.result, fileName: c.fileName, docType: c.docType });
+      if (c) {
+        navigation.reset({
+          index: 1,
+          routes: [
+            { name: 'Home' },
+            { name: 'Result', params: { result: c.result, fileName: c.fileName, docType: c.docType } },
+          ],
+        });
+      }
     }
   }, [completedJob]);
 
@@ -136,6 +145,19 @@ export default function AnalyzingScreen({ navigation, route }) {
       <Pressable onPress={() => navigation.navigate('Home')} hitSlop={10} style={styles.bgButton}>
         <Text style={styles.bgButtonText}>{t('an.background')}</Text>
       </Pressable>
+
+      {/* Iptal: kontrolu kes, isi birak, ana sayfaya don */}
+      <Pressable
+        onPress={() => {
+          handledRef.current = true;
+          cancelJob();
+          navigation.navigate('Home');
+        }}
+        hitSlop={10}
+        style={styles.cancelButton}
+      >
+        <Text style={styles.cancelButtonText}>{t('an.cancel')}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -190,4 +212,6 @@ const styles = StyleSheet.create({
   },
   bgButton: { marginTop: 24, paddingVertical: 10, paddingHorizontal: 18 },
   bgButtonText: { fontSize: 14.5, color: colors.cyan, fontWeight: '600' },
+  cancelButton: { marginTop: 4, paddingVertical: 8, paddingHorizontal: 18 },
+  cancelButtonText: { fontSize: 14, color: colors.textSoft, fontWeight: '500' },
 });

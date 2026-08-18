@@ -174,6 +174,14 @@ export function JobProvider({ children }) {
 
   const clearFailed = useCallback(() => setFailedJob(null), []);
 
+  // Kullanici incelemeyi iptal eder: polling durur, aktif is birakilir.
+  const cancelJob = useCallback(async () => {
+    await persist(null);
+    setActiveJob(null);
+    setCompletedJob(null);
+    setFailedJob(null);
+  }, [persist]);
+
   const value = {
     activeJob,
     completedJob,
@@ -181,6 +189,7 @@ export function JobProvider({ children }) {
     startJob,
     consumeCompleted,
     clearFailed,
+    cancelJob,
   };
 
   return <JobContext.Provider value={value}>{children}</JobContext.Provider>;

@@ -70,17 +70,8 @@ export default function App() {
           component={AnalyzingScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="Result" component={ResultScreen} options={({ route, navigation }) => ({
+        <Stack.Screen name="Result" component={ResultScreen} options={({ route }) => ({
           title: (!route.params?.docType || route.params.docType === 'financial') ? t('nav.report') : t('nav.review'),
-          headerLeft: () => (
-            <Pressable
-              onPress={() => navigation.popToTop()}
-              hitSlop={12}
-              style={{ paddingRight: 16, paddingVertical: 4 }}
-            >
-              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}>‹ {t('nav.back')}</Text>
-            </Pressable>
-          ),
         })} />
         <Stack.Screen name="History" component={HistoryScreen} options={{ title: t('nav.history') }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
