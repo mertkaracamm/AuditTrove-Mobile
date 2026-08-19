@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, fonts, severityMap } from '../theme';
+import { colors, gradients, fonts, getSeverityMap } from '../theme';
 import ScoreSeal from '../components/ScoreSeal';
-import { t, getLocale } from '../i18n';
+import { t, getLocale, setActiveLocale, getDeviceLocale } from '../i18n';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ResultScreen({ navigation, route }) {
   const { result, fileName, docType } = route.params;
+  // Rapor, uretildigi dilde saklanir. Arayuzu (baslik, severity etiketleri, bolum basliklari)
+  // raporun diline kilitle ki Ingilizce raporda Turkce etiket, ya da tersi, cikmasin.
+  // Ekrandan cikinca cihaz diline geri don.
+  const reportLang = route.params?.language || getDeviceLocale();
+  setActiveLocale(reportLang);
+  useFocusEffect(
+    useCallback(() => {
+      setActiveLocale(reportLang);
+      return () => setActiveLocale(getDeviceLocale());
+    }, [reportLang])
+  );
+  const severityMap = getSeverityMap();
   const isFinancial = !docType || docType === 'financial';
   const isScanned = typeof fileName === 'string' && fileName.startsWith('tarama-');
   const risks = result.risks || [];

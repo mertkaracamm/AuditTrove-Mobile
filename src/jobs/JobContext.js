@@ -19,7 +19,7 @@ import { startAuditJob, pollAuditJobOnce, registerPushToken, cancelAuditJob } fr
 import { addToHistory } from '../storage/history';
 import { incrementMonthlyUsage } from '../storage/usage';
 import { registerForPush } from '../notifications';
-import { t } from '../i18n';
+import { t, getLocale } from '../i18n';
 
 const ACTIVE_KEY = 'audittrove:activeJob';
 const POLL_MS = 4000;
@@ -51,11 +51,12 @@ export function JobProvider({ children }) {
 
   const finishDone = useCallback(
     async (job, result) => {
-      try { await addToHistory({ fileName: job.fileName, result, docType: job.docType }); } catch (e) {}
+      const language = job.language || getLocale();
+      try { await addToHistory({ fileName: job.fileName, result, docType: job.docType, language }); } catch (e) {}
       try { await incrementMonthlyUsage(); } catch (e) {}
       await persist(null);
       setActiveJob(null);
-      setCompletedJob({ id: job.id, result, fileName: job.fileName, docType: job.docType });
+      setCompletedJob({ id: job.id, result, fileName: job.fileName, docType: job.docType, language });
       // Bildirim artik backend'den push ile gelir (uygulama kapali/arka planda olsa da).
     },
     [persist]

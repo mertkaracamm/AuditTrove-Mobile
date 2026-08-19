@@ -69,6 +69,7 @@ export default function HistoryScreen({ navigation }) {
                   result: item.result,
                   fileName: item.fileName,
                   docType: item.docType,
+                  language: item.language,
                   fromHistory: true,
                 })
               }

@@ -63,8 +63,12 @@ export function riskLabel(score) {
   return t('risk.criticalLabel');                   // Madde madde incele
 }
 
-export const severityMap = {
-  HIGH: { label: t('risk.high'), color: colors.riskHigh, bg: colors.riskHighBg },
-  MEDIUM: { label: t('risk.mid'), color: colors.riskMid, bg: colors.riskMidBg },
-  LOW: { label: t('risk.low'), color: colors.riskLow, bg: colors.riskLowBg },
-};
+// Render-zamaninda cozulur ki aktif dile (rapor diline) uysun.
+// Modul yuklenirken t() dondurmak severity etiketlerini yanlis dile sabitliyordu.
+export function getSeverityMap() {
+  return {
+    HIGH: { label: t('risk.high'), color: colors.riskHigh, bg: colors.riskHighBg },
+    MEDIUM: { label: t('risk.mid'), color: colors.riskMid, bg: colors.riskMidBg },
+    LOW: { label: t('risk.low'), color: colors.riskLow, bg: colors.riskLowBg },
+  };
+}

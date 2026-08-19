@@ -157,7 +157,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.jobCard}
             onPress={() => {
               const c = consumeCompleted();
-              if (c) navigation.navigate('Result', { result: c.result, fileName: c.fileName, docType: c.docType });
+              if (c) navigation.navigate('Result', { result: c.result, fileName: c.fileName, docType: c.docType, language: c.language });
             }}
           >
             <View style={[styles.jobDot, { backgroundColor: colors.riskLow }]} />
@@ -268,6 +268,8 @@ export default function HomeScreen({ navigation }) {
                     navigation.navigate('Result', {
                       result: item.result,
                       fileName: item.fileName,
+                      docType: item.docType,
+                      language: item.language,
                       fromHistory: true,
                     })
                   }
