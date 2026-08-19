@@ -140,6 +140,9 @@ export function JobProvider({ children }) {
   // Isi baslat: hemen "starting" goster, arka planda jobId al
   const startJob = useCallback(
     async (file, docType) => {
+      // Rapor dilini is BASLARKEN sabitle: backend'e bu gider, sonuca kadar bu tasinir.
+      // getLocale() sonradan degisse bile rapor baslangic dilinde kalir (TR/EN karismaz).
+      const language = getLocale();
       // Push izni al + token'i backend'e kaydet (is bitince backend bu token'a push atar)
       registerForPush()
         .then((tok) => { if (tok) registerPushToken(tok); })
@@ -148,12 +151,13 @@ export function JobProvider({ children }) {
         id: null,
         fileName: file.name || 'document.pdf',
         docType,
+        language,
         status: 'starting',
         startedAt: Date.now(),
       };
       setActiveJob(provisional);
       try {
-        const { id } = await startAuditJob(file, docType);
+        const { id } = await startAuditJob(file, docType, language);
         const job = { ...provisional, id, status: 'processing' };
         await persist(job);
         setActiveJob(job);

@@ -105,9 +105,9 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 
 const UNAUTHORIZED = Symbol('unauthorized');
 
-async function submitOnce(file, documentType, token) {
+async function submitOnce(file, documentType, token, language) {
   const formData = new FormData();
-  formData.append('language', getLocale());
+  formData.append('language', language || getLocale());
   formData.append('documentType', documentType || 'general');
   formData.append('file', {
     uri: file.uri,
@@ -155,15 +155,16 @@ async function submitOnce(file, documentType, token) {
  * Inceleme isini baslatir, jobId doner. (Mock modda 'mock:...' doner.)
  * @returns {Promise<{ id: string }>}
  */
-export async function startAuditJob(file, documentType) {
+export async function startAuditJob(file, documentType, language) {
   if (USE_MOCK) {
     return { id: `mock:${Date.now()}` };
   }
+  const lang = language || getLocale();
   let token = await getDeviceToken();
-  let id = await submitOnce(file, documentType, token);
+  let id = await submitOnce(file, documentType, token, lang);
   if (id === UNAUTHORIZED) {
     token = await getDeviceToken(true);
-    id = await submitOnce(file, documentType, token);
+    id = await submitOnce(file, documentType, token, lang);
     if (id === UNAUTHORIZED) throw new Error(t('cli.serverError'));
   }
   return { id };
