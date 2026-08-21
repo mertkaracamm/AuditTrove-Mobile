@@ -16,6 +16,7 @@ import { getHistory } from '../storage/history';
 import { USE_MOCK } from '../api/client';
 import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
+import { hasAiConsent, setAiConsent } from '../storage/consent';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
 import { SCAN_ENABLED, PHOTOS_ENABLED, scanToPdf, pickPhotosToPdf } from '../scan/scanner';
@@ -39,12 +40,39 @@ export default function HomeScreen({ navigation }) {
   const [recent, setRecent] = useState([]);
   const { activeJob, completedJob, failedJob, startJob, consumeCompleted, clearFailed } = useJob();
 
+  // Belge gonderilmeden once, iceriginin analiz icin OpenAI'ye gonderilecegini
+  // acikca bildirir ve bir kez onay ister. Onay verilene kadar hicbir sey gonderilmez.
+  function ensureAiConsent() {
+    return new Promise(async (resolve) => {
+      if (await hasAiConsent()) {
+        resolve(true);
+        return;
+      }
+      Alert.alert(
+        t('consent.title'),
+        t('consent.body'),
+        [
+          { text: t('consent.cancel'), style: 'cancel', onPress: () => resolve(false) },
+          {
+            text: t('consent.accept'),
+            onPress: async () => {
+              await setAiConsent();
+              resolve(true);
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    });
+  }
+
   // Isi baslat: JobContext arka planda takip eder; Analyzing sadece gosterir.
   async function launchJob(file) {
     if (activeJob) {
       Alert.alert(t('home.jobActive'), t('home.jobBusy'));
       return;
     }
+    if (!(await ensureAiConsent())) return;
     const r = await startJob(file, docType);
     if (r.ok) {
       navigation.navigate('Analyzing');

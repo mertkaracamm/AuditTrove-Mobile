@@ -59,6 +59,11 @@ export default {
     'home.scanNoTextTitle': 'Metin okunamadı',
     'home.scanNoText': 'Taranan sayfalarda okunur metin bulunamadı. Daha iyi ışıkta, sayfayı düz tutarak tekrar deneyin.',
     'home.pickError': 'Dosya seçilemedi',
+    'consent.title': 'Belgen analiz için gönderilecek',
+    'consent.body':
+      'İncelemeyi yapabilmek için belgenden çıkarılan metin, analiz amacıyla üçüncü taraf bir yapay zekâ hizmeti olan OpenAI\'ye gönderilir. Belgeler sunucularımızda kalıcı olarak saklanmaz. Devam etmek için onayla.',
+    'consent.accept': 'Onaylıyorum',
+    'consent.cancel': 'Vazgeç',
     'home.jobActive': 'İnceleniyor…',
     'home.jobReady': 'Raporun hazır',
     'home.jobFailed': 'İnceleme tamamlanamadı',
@@ -244,6 +249,11 @@ export default {
     'home.scanNoTextTitle': 'No readable text',
     'home.scanNoText': 'No readable text was found on the scanned pages. Try again in better light, holding the page flat.',
     'home.pickError': 'Could not select file',
+    'consent.title': 'Your document will be sent for analysis',
+    'consent.body':
+      'To perform the review, the text extracted from your document is sent to OpenAI, a third-party AI service, for analysis. Documents are not stored permanently on our servers. Tap accept to continue.',
+    'consent.accept': 'I accept',
+    'consent.cancel': 'Cancel',
     'home.jobActive': 'Reviewing…',
     'home.jobReady': 'Your report is ready',
     'home.jobFailed': 'Review failed',
