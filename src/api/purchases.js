@@ -2,7 +2,12 @@
 // dev build alana kadar PURCHASES_ENABLED false kalacak
 export const PURCHASES_ENABLED = true;
 
+import { Platform } from 'react-native';
+
 const APPLE_API_KEY = 'appl_yvGCYwJYtFEoPllbCdwtpdaJZRf';
+const GOOGLE_API_KEY = 'goog_fzpWJlyoQhShCbsgAuGunpDxsYz';
+
+const API_KEY = Platform.OS === 'android' ? GOOGLE_API_KEY : APPLE_API_KEY;
 
 export const ENTITLEMENT_ID = 'pro';
 
@@ -19,7 +24,7 @@ export async function initPurchases() {
   // ayni deviceId backend'de de kullaniliyor, rc bunu appUserID yapinca
   // sunucu tarafinda pro sorgusu atabiliyoruz
   const deviceId = await getOrCreateDeviceId();
-  await Purchases.configure({ apiKey: APPLE_API_KEY, appUserID: deviceId });
+  await Purchases.configure({ apiKey: API_KEY, appUserID: deviceId });
 }
 
 export async function checkIsPro() {
