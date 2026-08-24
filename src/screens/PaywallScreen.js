@@ -8,11 +8,13 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, fonts } from '../theme';
 import {
   PURCHASES_ENABLED,
+  checkIsPro,
   getPaywallPackages,
   purchasePackage,
   restorePurchases,
@@ -28,15 +30,25 @@ const FALLBACK_PLANS = [
   { key: 'monthly', title: t('pw.monthly'), price: '$6.99', note: t('pw.perMonth') },
 ];
 
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+// Iptal/yonetim metinlerinde gecen magaza adi platforma gore degisir.
+const STORE_NAME = Platform.OS === 'android' ? 'Google Play' : 'App Store';
+
+// iOS review'dan gecen Apple standart EULA korunur; Android kendi sayfamizi acar.
+const TERMS_URL = Platform.select({
+  android: 'https://audittrove.com/terms.html',
+  default: 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+});
 const PRIVACY_URL = 'https://audittrove.com/privacy';
 
 export default function PaywallScreen({ navigation }) {
   const [packages, setPackages] = useState([]);
   const [selected, setSelected] = useState('annual');
   const [busy, setBusy] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
+    // Pro kullanici paywall'i degil "uyeligin aktif" gorunumunu gorur.
+    checkIsPro().then(setIsPro);
     getPaywallPackages().then(setPackages);
   }, []);
 
@@ -59,9 +71,10 @@ export default function PaywallScreen({ navigation }) {
     }
     setBusy(true);
     try {
-      const { isPro, cancelled } = await purchasePackage(plan.pkg);
+      const { isPro: purchased, cancelled } = await purchasePackage(plan.pkg);
       if (cancelled) return;
-      if (isPro) {
+      if (purchased) {
+        setIsPro(true);
         Alert.alert(t('iap.welcome'), t('iap.activeMsg'), [
           { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
@@ -80,17 +93,55 @@ export default function PaywallScreen({ navigation }) {
     }
     setBusy(true);
     try {
-      const isPro = await restorePurchases();
+      const restored = await restorePurchases();
+      if (restored) setIsPro(true);
       Alert.alert(
-        isPro ? t('iap.restored') : t('iap.notFound'),
-        isPro ? t('iap.activeMsg') : t('iap.notFoundMsg'),
-        isPro ? [{ text: t('common.ok'), onPress: () => navigation.goBack() }] : undefined
+        restored ? t('iap.restored') : t('iap.notFound'),
+        restored ? t('iap.activeMsg') : t('iap.notFoundMsg'),
+        restored ? [{ text: t('common.ok'), onPress: () => navigation.goBack() }] : undefined
       );
     } catch (e) {
       Alert.alert(t('iap.restoreFail'), e.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  // Zaten Pro: satin alma yerine bilgilendirme goster.
+  if (isPro) {
+    return (
+      <LinearGradient colors={gradients.hero} style={styles.root}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.eyebrow}>
+            <Text style={styles.eyebrowStar}>✦ </Text>{t('pw.eyebrow')}
+          </Text>
+          <Text style={styles.title}>{t('pw.proTitle')}</Text>
+          <Text style={styles.subtitle}>{t('pw.proMsg', { store: STORE_NAME })}</Text>
+
+          <View style={styles.features}>
+            {FEATURES.map((f) => (
+              <View key={f} style={styles.featureRow}>
+                <Text style={styles.featureTick}>✓</Text>
+                <Text style={styles.featureText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Pressable onPress={() => navigation.goBack()}>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={gradients.button}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.cta, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={styles.ctaText}>{t('pw.proCta')}</Text>
+              </LinearGradient>
+            )}
+          </Pressable>
+        </ScrollView>
+      </LinearGradient>
+    );
   }
 
   return (
@@ -158,7 +209,7 @@ export default function PaywallScreen({ navigation }) {
           )}
         </Pressable>
 
-        <Text style={styles.renewNote}>{t('pw.renewNote')}</Text>
+        <Text style={styles.renewNote}>{t('pw.renewNote', { store: STORE_NAME })}</Text>
 
         <Pressable onPress={restore} hitSlop={8}>
           <Text style={styles.restore}>{t('pw.restore')}</Text>
