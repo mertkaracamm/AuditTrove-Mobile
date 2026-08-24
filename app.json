@@ -64,7 +64,8 @@
         {
           "color": "#05D9F0"
         }
-      ]
+      ],
+      "./plugins/withNativeDebugSymbols"
     ]
   }
 }
