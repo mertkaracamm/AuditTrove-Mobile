@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   chip: {
-    width: 66,
+    flexBasis: '21%',
     height: 58,
     borderRadius: 16,
     backgroundColor: colors.cardSoft,
