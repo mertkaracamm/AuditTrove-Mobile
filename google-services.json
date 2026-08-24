@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "987691454900",
+    "project_id": "audittrove",
+    "storage_bucket": "audittrove.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987691454900:android:6277c6e4089b343dd422e1",
+        "android_client_info": {
+          "package_name": "com.audittrove.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRiMBfs09p-kHEJIyxpRwzwORE0imj4jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
