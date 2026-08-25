@@ -18,6 +18,14 @@ try {
 
 export { NOTIFS_ENABLED };
 
+// Push token alinamadiginda sebebi burada tutulur; backend'e raporlanip
+// sunucu logundan okunur (cihazda gorunmez, teshis amacli).
+let lastPushError = null;
+export function getLastPushError() {
+  if (!NOTIFS_ENABLED) return 'notifications-module-missing';
+  return lastPushError;
+}
+
 // Uygulama on plandayken de bildirim gorunsun
 if (NOTIFS_ENABLED && Notifications.setNotificationHandler) {
   Notifications.setNotificationHandler({
@@ -38,11 +46,16 @@ export async function ensureNotificationPermission() {
   try {
     const current = await Notifications.getPermissionsAsync();
     if (current.granted) return true;
-    if (permissionAsked && !current.canAskAgain) return false;
+    if (permissionAsked && !current.canAskAgain) {
+      lastPushError = 'permission-blocked';
+      return false;
+    }
     permissionAsked = true;
     const req = await Notifications.requestPermissionsAsync();
+    if (!req.granted) lastPushError = 'permission-denied';
     return !!req.granted;
   } catch (e) {
+    lastPushError = 'permission-check: ' + ((e && e.message) || String(e));
     return false;
   }
 }
@@ -97,11 +110,20 @@ export async function registerForPush() {
         (Constants.easConfig && Constants.easConfig.projectId);
     } catch (e) {}
 
-    const res = projectId
-      ? await Notifications.getExpoPushTokenAsync({ projectId })
-      : await Notifications.getExpoPushTokenAsync();
-    return (res && res.data) || null;
+    let res;
+    try {
+      res = projectId
+        ? await Notifications.getExpoPushTokenAsync({ projectId })
+        : await Notifications.getExpoPushTokenAsync();
+    } catch (e) {
+      lastPushError = 'token: ' + ((e && e.message) || String(e));
+      return null;
+    }
+    const token = (res && res.data) || null;
+    if (!token) lastPushError = 'token-empty-response';
+    return token;
   } catch (e) {
+    lastPushError = 'register: ' + ((e && e.message) || String(e));
     return null;
   }
 }
