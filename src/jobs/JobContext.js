@@ -15,10 +15,10 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { startAuditJob, pollAuditJobOnce, registerPushToken, cancelAuditJob } from '../api/client';
+import { startAuditJob, pollAuditJobOnce, registerPushToken, reportPushFailure, cancelAuditJob } from '../api/client';
 import { addToHistory } from '../storage/history';
 import { incrementMonthlyUsage } from '../storage/usage';
-import { registerForPush } from '../notifications';
+import { registerForPush, getLastPushError } from '../notifications';
 import { t, getLocale } from '../i18n';
 
 const ACTIVE_KEY = 'audittrove:activeJob';
@@ -145,8 +145,11 @@ export function JobProvider({ children }) {
       const language = getLocale();
       // Push izni al + token'i backend'e kaydet (is bitince backend bu token'a push atar)
       registerForPush()
-        .then((tok) => { if (tok) registerPushToken(tok); })
-        .catch(() => {});
+        .then((tok) => {
+          if (tok) registerPushToken(tok);
+          else reportPushFailure(getLastPushError() || 'unknown');
+        })
+        .catch((e) => reportPushFailure((e && e.message) || 'register-crash'));
       const provisional = {
         id: null,
         fileName: file.name || 'document.pdf',
