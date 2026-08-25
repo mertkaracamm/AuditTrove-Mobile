@@ -16,7 +16,6 @@ import { getHistory } from '../storage/history';
 import { USE_MOCK } from '../api/client';
 import { checkIsPro } from '../api/purchases';
 import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
-import { hasAiConsent, setAiConsent } from '../storage/consent';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
 import { SCAN_ENABLED, PHOTOS_ENABLED, scanToPdf, pickPhotosToPdf } from '../scan/scanner';
@@ -41,25 +40,16 @@ export default function HomeScreen({ navigation }) {
   const { activeJob, completedJob, failedJob, startJob, consumeCompleted, clearFailed } = useJob();
 
   // Belge gonderilmeden once, iceriginin analiz icin OpenAI'ye gonderilecegini
-  // acikca bildirir ve bir kez onay ister. Onay verilene kadar hicbir sey gonderilmez.
+  // acikca bildirir ve onay ister. App Review 5.1.2(i) geregi bu onay HER belge
+  // gonderiminde istenir (kayit tutulmaz); onay verilene kadar hicbir veri cihazdan cikmaz.
   function ensureAiConsent() {
-    return new Promise(async (resolve) => {
-      if (await hasAiConsent()) {
-        resolve(true);
-        return;
-      }
+    return new Promise((resolve) => {
       Alert.alert(
         t('consent.title'),
         t('consent.body'),
         [
           { text: t('consent.cancel'), style: 'cancel', onPress: () => resolve(false) },
-          {
-            text: t('consent.accept'),
-            onPress: async () => {
-              await setAiConsent();
-              resolve(true);
-            },
-          },
+          { text: t('consent.accept'), onPress: () => resolve(true) },
         ],
         { cancelable: false }
       );
