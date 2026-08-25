@@ -223,6 +223,28 @@ export async function registerPushToken(pushToken) {
 }
 
 /**
+ * Push token uretilemediginde sebebi backend'e bildirir; sunucu loguna duser.
+ * Cihazda hicbir sey gostermez, akisi etkilemez.
+ */
+export async function reportPushFailure(reason) {
+  if (USE_MOCK) return;
+  try {
+    const token = await getDeviceToken();
+    await fetch(`${API_BASE_URL}/api/v1/devices/push-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pushToken: '', error: String(reason || 'unknown').slice(0, 300) }),
+    });
+  } catch (e) {
+    // sessiz
+  }
+}
+
+/**
  * Devam eden async incelemeyi iptal eder (backend push/kota gondermesin). Sessiz basarisiz olur.
  */
 export async function cancelAuditJob(jobId) {
