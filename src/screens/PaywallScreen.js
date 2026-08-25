@@ -80,6 +80,18 @@ export default function PaywallScreen({ navigation }) {
         ]);
       }
     } catch (e) {
+      // Kullanici (veya reviewer) urune zaten sahipse satin alma hata verir;
+      // once sessizce restore dener, basarirsa hata yerine Pro acilir. (2.1(b))
+      try {
+        const restored = await restorePurchases();
+        if (restored) {
+          setIsPro(true);
+          Alert.alert(t('iap.restored'), t('iap.activeMsg'), [
+            { text: t('common.ok'), onPress: () => navigation.goBack() },
+          ]);
+          return;
+        }
+      } catch {}
       Alert.alert(t('iap.purchaseFail'), e.message);
     } finally {
       setBusy(false);
