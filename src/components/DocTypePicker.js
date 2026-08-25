@@ -41,7 +41,7 @@ function IconChip({ type, selected, onPress }) {
   const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ transform: [{ scale }], flexBasis: '21%' }}>
       <Pressable
         onPress={() => onPress(type.id)}
         accessibilityRole="button"
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   chip: {
-    flexBasis: '21%',
+    width: '100%',
     height: 58,
     borderRadius: 16,
     backgroundColor: colors.cardSoft,
