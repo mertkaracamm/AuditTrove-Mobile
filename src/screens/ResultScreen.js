@@ -1,17 +1,17 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, fonts, getSeverityMap } from '../theme';
 import ScoreSeal from '../components/ScoreSeal';
 import { t, getLocale, setActiveLocale, getDeviceLocale } from '../i18n';
 import { useFocusEffect } from '@react-navigation/native';
+import { formatMetricValue, formatPages, isSymbolUnit } from '../utils/reportFormat';
 
 export default function ResultScreen({ navigation, route }) {
   const { result, fileName, docType } = route.params;
-  // Rapor, uretildigi dilde saklanir. Arayuzu (baslik, severity etiketleri, bolum basliklari)
-  // raporun diline kilitle ki Ingilizce raporda Turkce etiket, ya da tersi, cikmasin.
-  // Ekrandan cikinca cihaz diline geri don.
-  const reportLang = route.params?.language || getDeviceLocale();
+  // Raporun dili raporun kendisinden gelir (backend `language` alanı); eski kayıtlarda iş
+  // parametresine, o da yoksa cihaz diline düşülür. Arayüz bu dile kilitlenir, çıkışta geri döner.
+  const reportLang = result.language || route.params?.language || getDeviceLocale();
   setActiveLocale(reportLang);
   useFocusEffect(
     useCallback(() => {
@@ -21,6 +21,13 @@ export default function ResultScreen({ navigation, route }) {
   );
   const severityMap = getSeverityMap();
   const isFinancial = !docType || docType === 'financial';
+  // Başlık ve geri düğmesi navigator'da cihaz diliyle hesaplanıyor; rapor diline burada çekilir.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t(isFinancial ? 'nav.report' : 'nav.review'),
+      headerBackTitle: t('nav.back'),
+    });
+  }, [navigation, reportLang, isFinancial]);
   const isScanned = typeof fileName === 'string' && fileName.startsWith('tarama-');
   const risks = result.risks || [];
   const recommendations = result.recommendations || [];
@@ -100,9 +107,15 @@ export default function ResultScreen({ navigation, route }) {
                     getLocale() === 'tr' ? 'tr-TR' : 'en-US'
                   )}
                 </Text>
-                <Text style={styles.metricValue} numberOfLines={1}>
-                  {m.value}
+                <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  {formatMetricValue(m.value, reportLang)}
+                  {isSymbolUnit(m.unit) ? m.unit : ''}
                 </Text>
+                {m.unit && !isSymbolUnit(m.unit) ? (
+                  <Text style={styles.metricUnit} numberOfLines={1}>
+                    {m.unit}
+                  </Text>
+                ) : null}
                 {m.note ? (
                   <Text style={styles.metricNote} numberOfLines={2}>
                     {m.note}
@@ -146,9 +159,15 @@ export default function ResultScreen({ navigation, route }) {
                   </View>
                 </View>
                 <Text style={styles.riskTitle}>{risk.title}</Text>
+                {risk.source === 'model' ? (
+                  <Text style={styles.extraTag}>{t('res.extraNote')}</Text>
+                ) : null}
                 {risk.evidence ? (
                   <View style={styles.evidence}>
                     <Text style={styles.evidenceText}>{risk.evidence}</Text>
+                    {risk.pages && risk.pages.length > 0 ? (
+                      <Text style={styles.evidencePages}>{formatPages(risk.pages, reportLang, t)}</Text>
+                    ) : null}
                   </View>
                 ) : null}
                 {risk.explanation ? (
@@ -303,6 +322,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
+  metricUnit: { fontSize: 11, color: colors.textSoft, marginTop: 2 },
   metricNote: { fontSize: 11, color: colors.textSoft, marginTop: 4 },
   questionMark: {
     fontFamily: fonts.mono,
@@ -367,6 +387,19 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: colors.textSoft,
     fontStyle: 'italic',
+  },
+  extraTag: {
+    fontSize: 11,
+    color: colors.textSoft,
+    marginTop: -4,
+    marginBottom: 8,
+    letterSpacing: 0.4,
+  },
+  evidencePages: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.gold,
+    marginTop: 6,
   },
   riskExplanation: { fontSize: 13.5, lineHeight: 20, color: colors.text },
   recRow: { flexDirection: 'row', paddingVertical: 12 },

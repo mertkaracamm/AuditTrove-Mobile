@@ -90,10 +90,10 @@ export default function HomeScreen({ navigation }) {
     const pro = await checkIsPro();
     if (pro) return true;
     const used = await getMonthlyUsage();
-    if (used >= FREE_MONTHLY_LIMIT) {
+    /*if (used >= FREE_MONTHLY_LIMIT) {
       navigation.navigate('Paywall');
       return false;
-    }
+    }*/
     return true;
   }
 

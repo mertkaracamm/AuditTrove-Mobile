@@ -7,13 +7,14 @@
 // ============================================================
 
 export const USE_MOCK = false;
-export const API_BASE_URL = 'https://audittrove-production.up.railway.app';
+export const API_BASE_URL = 'https://audittrove-staging-production.up.railway.app';
 
 const MOCK_DELAY_MS = 4500;
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOrCreateDeviceId } from './device';
 import { t, getLocale } from '../i18n';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const TOKEN_KEY = 'audittrove:deviceToken';
 
@@ -105,32 +106,47 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 
 const UNAUTHORIZED = Symbol('unauthorized');
 
+// SDK 54+ / New Architecture: RN fetch, FormData'ya {uri} objesiyle dosya eklemeyi
+// desteklemiyor ("Unsupported FormDataPart implementation"); upload uploadAsync ile yapilir.
 async function submitOnce(file, documentType, token, language) {
-  const formData = new FormData();
-  formData.append('language', language || getLocale());
-  formData.append('documentType', documentType || 'general');
-  formData.append('file', {
-    uri: file.uri,
-    name: file.name || 'document.pdf',
-    type: file.mimeType || 'application/pdf',
-  });
+  const task = FileSystem.createUploadTask(
+    `${API_BASE_URL}/api/v1/audit/async`,
+    file.uri,
+    {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: file.mimeType || 'application/pdf',
+      parameters: {
+        language: language || getLocale(),
+        documentType: documentType || 'general',
+      },
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    }
+  );
 
+  let timer;
   let response;
   try {
-    response = await fetchWithTimeout(
-      `${API_BASE_URL}/api/v1/audit/async`,
-      { method: 'POST', body: formData, headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
-      SUBMIT_TIMEOUT_MS
-    );
+    response = await Promise.race([
+      task.uploadAsync(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          task.cancelAsync().catch(() => {});
+          const err = new Error(t('cli.timeout'));
+          err.code = 'TIMEOUT';
+          reject(err);
+        }, SUBMIT_TIMEOUT_MS);
+      }),
+    ]);
   } catch (e) {
-    if (e && e.name === 'AbortError') {
-      const err = new Error(t('cli.timeout'));
-      err.code = 'TIMEOUT';
-      throw err;
-    }
+    if (e && e.code === 'TIMEOUT') throw e;
     throw new Error(t('cli.networkError'));
+  } finally {
+    clearTimeout(timer);
   }
 
+  if (!response) throw new Error(t('cli.networkError'));
   if (response.status === 401) return UNAUTHORIZED;
   if (response.status === 402) {
     const err = new Error(t('cli.monthlyLimit'));
@@ -143,14 +159,13 @@ async function submitOnce(file, documentType, token, language) {
     throw err;
   }
   if (response.status !== 200 && response.status !== 202) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`${t('cli.serverError')} (${response.status}): ${text || t('cli.unknownError')}`);
+    throw new Error(`${t('cli.serverError')} (${response.status}): ${response.body || t('cli.unknownError')}`);
   }
-  const data = await response.json();
+  let data = null;
+  try { data = JSON.parse(response.body); } catch {}
   if (!data || !data.id) throw new Error(t('cli.serverError'));
   return data.id;
 }
-
 /**
  * Inceleme isini baslatir, jobId doner. (Mock modda 'mock:...' doner.)
  * @returns {Promise<{ id: string }>}
@@ -159,7 +174,7 @@ export async function startAuditJob(file, documentType, language) {
   if (USE_MOCK) {
     return { id: `mock:${Date.now()}` };
   }
-  const lang = language || getLocale();
+  const lang ='tr'; // GECICI TEST
   let token = await getDeviceToken();
   let id = await submitOnce(file, documentType, token, lang);
   if (id === UNAUTHORIZED) {
