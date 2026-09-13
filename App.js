@@ -11,6 +11,9 @@ import OnboardingScreen, { ONBOARDING_KEY } from './src/screens/OnboardingScreen
 import HomeScreen from './src/screens/HomeScreen';
 import AnalyzingScreen from './src/screens/AnalyzingScreen';
 import ResultScreen from './src/screens/ResultScreen';
+import DocumentViewerScreen from './src/screens/DocumentViewerScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import DiffScreen from './src/screens/DiffScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PaywallScreen from './src/screens/PaywallScreen';
@@ -73,6 +76,13 @@ export default function App() {
         <Stack.Screen name="Result" component={ResultScreen} options={({ route }) => ({
           title: (!route.params?.docType || route.params.docType === 'financial') ? t('nav.report') : t('nav.review'),
         })} />
+        <Stack.Screen
+          name="DocumentViewer"
+          component={DocumentViewerScreen}
+          options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen name="Chat" component={ChatScreen} options={{ title: t('nav.chat') }} />
+        <Stack.Screen name="Diff" component={DiffScreen} options={{ title: t('nav.diff') }} />
         <Stack.Screen name="History" component={HistoryScreen} options={{ title: t('nav.history') }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
         <Stack.Screen

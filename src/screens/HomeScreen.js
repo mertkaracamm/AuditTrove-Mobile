@@ -19,6 +19,7 @@ import { getMonthlyUsage, FREE_MONTHLY_LIMIT } from '../storage/usage';
 import { t } from '../i18n';
 import DocTypePicker from '../components/DocTypePicker';
 import { SCAN_ENABLED, PHOTOS_ENABLED, scanToPdf, pickPhotosToPdf } from '../scan/scanner';
+import { thumpThen } from '../feedback';
 import { useJob } from '../jobs/JobContext';
 
 const SUPPORTED = [
@@ -63,21 +64,25 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     if (!(await ensureAiConsent())) return;
-    const r = await startJob(file, docType);
-    if (r.ok) {
-      navigation.navigate('Analyzing');
-      return;
-    }
+    // Yükleme arka planda sürerken hemen Analyzing'e geç; kullanıcı onayladığı an ekran değişsin.
+    // Yükleme başarısız olursa JobContext failedJob koyar, Analyzing ana sayfaya döner, sebep burada gösterilir.
+    const pending = startJob(file, docType);
+    navigation.navigate('Analyzing');
+    const r = await pending;
+    if (r.ok) return;
     if (r.code === 'MONTHLY_LIMIT_REACHED') {
+      clearFailed();
       navigation.navigate('Paywall');
       return;
     }
     if (r.code === 'RATE_LIMITED') {
       // Saatlik hiz siniri — abonelik cozmez, Paywall'a GITME; sadece bilgilendir.
       Alert.alert(t('home.rateLimitTitle'), (r.error && r.error.message) || t('cli.hourlyLimit'));
+      clearFailed();
       return;
     }
     Alert.alert(t('home.pickError'), (r.error && r.error.message) || t('cli.serverError'));
+    clearFailed();
   }
 
   useFocusEffect(
@@ -175,7 +180,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.jobCard}
             onPress={() => {
               const c = consumeCompleted();
-              if (c) navigation.navigate('Result', { result: c.result, fileName: c.fileName, docType: c.docType, language: c.language });
+              if (c) navigation.navigate('Result', { result: c.result, fileName: c.fileName, docType: c.docType, language: c.language, localUri: c.localUri, historyId: c.historyId, pagesUri: c.pagesUri });
             }}
           >
             <View style={[styles.jobDot, { backgroundColor: colors.riskLow }]} />
@@ -187,7 +192,7 @@ export default function HomeScreen({ navigation }) {
           </Pressable>
         )}
 
-        {!activeJob && failedJob && (
+        {!activeJob && failedJob && !failedJob.silent && (
           <Pressable style={styles.jobCard} onPress={() => clearFailed()}>
             <View style={[styles.jobDot, { backgroundColor: colors.riskHigh }]} />
             <View style={styles.jobInfo}>
@@ -216,7 +221,7 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.uploadHint}>{t('home.uploadHint')}</Text>
           <DocTypePicker value={docType} onChange={setDocType} />
           <Text style={styles.promise}>{t('home.promise')}</Text>
-          <Pressable onPress={pickDocument}>
+          <Pressable onPress={() => thumpThen(pickDocument)}>
             {({ pressed }) => (
               <LinearGradient
                 colors={gradients.button}
@@ -231,7 +236,7 @@ export default function HomeScreen({ navigation }) {
           {(SCAN_ENABLED || PHOTOS_ENABLED) && (
             <View style={styles.altRow}>
               {SCAN_ENABLED && (
-                <Pressable onPress={scanDocument} style={{ flex: 1 }}>
+                <Pressable onPress={() => thumpThen(scanDocument)} style={{ flex: 1 }}>
                   {({ pressed }) => (
                     <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
                       <Text style={styles.scanButtonText}>{t('home.scan')}</Text>
@@ -240,7 +245,7 @@ export default function HomeScreen({ navigation }) {
                 </Pressable>
               )}
               {PHOTOS_ENABLED && (
-                <Pressable onPress={pickPhotos} style={{ flex: 1 }}>
+                <Pressable onPress={() => thumpThen(pickPhotos)} style={{ flex: 1 }}>
                   {({ pressed }) => (
                     <View style={[styles.scanButton, pressed && { opacity: 0.8 }]}>
                       <Text style={styles.scanButtonText}>{t('home.photos')}</Text>
@@ -252,6 +257,27 @@ export default function HomeScreen({ navigation }) {
           )}
           <Text style={styles.trustNote}>{t('home.trustNote')}</Text>
         </View>
+
+        {/* Karşılaştırma ayrı bir iş; yükleme kartının içinde link olarak değil, kendi kartıyla durur. */}
+        <Pressable onPress={() => thumpThen(() => navigation.navigate('Diff'))}
+          style={({ pressed }) => [styles.diffCard, pressed && { opacity: 0.88 }]}>
+          <LinearGradient colors={['rgba(245,197,66,0.16)', 'rgba(245,197,66,0.03)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.diffCardInner}>
+            <View style={styles.diffArt}>
+              <View style={styles.diffPageBack} />
+              <View style={styles.diffPageFront}>
+                <View style={styles.diffLine} />
+                <View style={[styles.diffLine, styles.diffLineHot]} />
+                <View style={[styles.diffLine, { width: 14 }]} />
+              </View>
+              <View style={styles.diffArrow}><Text style={styles.diffArrowText}>⇄</Text></View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.diffTitle}>{t('home.diffLink')}</Text>
+              <Text style={styles.diffSub}>{t('home.diffSub')}</Text>
+            </View>
+            <Text style={styles.diffChevron}>›</Text>
+          </LinearGradient>
+        </Pressable>
 
         <Text style={styles.sectionEyebrow}>
           <Text style={styles.eyebrowStar}>◆ </Text>{t('home.supportedTitle')}
@@ -288,6 +314,9 @@ export default function HomeScreen({ navigation }) {
                       fileName: item.fileName,
                       docType: item.docType,
                       language: item.language,
+                      localUri: item.localUri,
+                      historyId: item.id,
+                      pagesUri: item.pagesUri,
                       fromHistory: true,
                     })
                   }
@@ -473,6 +502,18 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: { color: colors.bgDeep, fontSize: 15.5, fontWeight: '800' },
   altRow: { flexDirection: 'row', gap: 10 },
+  diffCard: { marginHorizontal: 20, marginTop: -12, marginBottom: 28, borderRadius: 18, borderWidth: 1, borderColor: colors.gold + '66', overflow: 'hidden', backgroundColor: colors.card },
+  diffCardInner: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 16 },
+  diffArt: { width: 54, height: 50, justifyContent: 'center' },
+  diffPageBack: { position: 'absolute', left: 4, top: 2, width: 30, height: 38, borderRadius: 4, backgroundColor: colors.cardSoft, borderWidth: 1, borderColor: colors.line },
+  diffPageFront: { position: 'absolute', left: 12, top: 9, width: 30, height: 38, borderRadius: 4, backgroundColor: '#F1F6FF', paddingTop: 8, paddingLeft: 5, gap: 4 },
+  diffLine: { width: 19, height: 3, borderRadius: 2, backgroundColor: '#B9C6E0' },
+  diffLineHot: { backgroundColor: colors.gold, width: 16 },
+  diffArrow: { position: 'absolute', right: 0, bottom: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  diffArrowText: { color: colors.bgDeep, fontSize: 12, fontWeight: '800', marginTop: -1 },
+  diffTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.display },
+  diffSub: { color: colors.textSoft, fontSize: 12, lineHeight: 16, marginTop: 2 },
+  diffChevron: { color: colors.gold, fontSize: 26, fontWeight: '300', marginTop: -2 },
   scanButton: {
     marginTop: 10,
     borderWidth: 1.5,

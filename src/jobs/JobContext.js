@@ -17,6 +17,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startAuditJob, pollAuditJobOnce, registerPushToken, reportPushFailure, cancelAuditJob } from '../api/client';
 import { addToHistory } from '../storage/history';
+import { keepDocumentCopy, deleteDocument } from '../storage/documents';
 import { incrementMonthlyUsage } from '../storage/usage';
 import { registerForPush, getLastPushError } from '../notifications';
 import { t, getLocale } from '../i18n';
@@ -52,11 +53,17 @@ export function JobProvider({ children }) {
   const finishDone = useCallback(
     async (job, result) => {
       const language = job.language || getLocale();
-      try { await addToHistory({ fileName: job.fileName, result, docType: job.docType, language }); } catch (e) {}
+      let saved = null;
+      try { saved = await addToHistory({ fileName: job.fileName, result, docType: job.docType, language, localUri: job.localUri || null }); } catch (e) {}
       try { await incrementMonthlyUsage(); } catch (e) {}
       await persist(null);
       setActiveJob(null);
-      setCompletedJob({ id: job.id, result, fileName: job.fileName, docType: job.docType, language });
+      // Ekrana giden rapor sayfa metinlerini taşımaz; soru-cevap onları dosyadan (pagesUri) okur.
+      const { pageTexts, ...report } = result || {};
+      setCompletedJob({
+        id: job.id, result: report, fileName: job.fileName, docType: job.docType, language,
+        localUri: job.localUri || null, historyId: saved ? saved.id : null, pagesUri: saved ? saved.pagesUri : null,
+      });
       // Bildirim artik backend'den push ile gelir (uygulama kapali/arka planda olsa da).
     },
     [persist]
@@ -64,6 +71,8 @@ export function JobProvider({ children }) {
 
   const finishFailed = useCallback(
     async (job, error) => {
+      // Sonuç yoksa saklanacak belge de yok.
+      if (job && job.localUri) deleteDocument(job.localUri);
       await persist(null);
       setActiveJob(null);
       setFailedJob({ fileName: job.fileName, error: error || t('cli.serverError') });
@@ -83,9 +92,10 @@ export function JobProvider({ children }) {
         else await finishFailed(job, t('cli.serverError'));
       } else if (res.status === 'FAILED') {
         await finishFailed(job, res.error);
-      } else if (res.status === 'GONE') {
-        // TTL ile silindi ya da bulunamadi
-        await finishFailed(job, t('cli.timeout'));
+      } else if (res.status === 'GONE' || res.status === 'INTERRUPTED') {
+        // Sunucu yeniden başladığında süren işler kaybolur; kullanıcının belgesiyle ilgisi yok, hakkı da yanmaz.
+        // GONE: kayıt hiç bulunamadı. INTERRUPTED: kayıt var, yarıda kaldığı biliniyor.
+        await finishFailed(job, t('cli.jobLost'));
       }
       // PENDING / PROCESSING → beklemeye devam
     } catch (e) {
@@ -161,13 +171,19 @@ export function JobProvider({ children }) {
       setActiveJob(provisional);
       try {
         const { id } = await startAuditJob(file, docType, language);
-        const job = { ...provisional, id, status: 'processing' };
+        // Belgenin kopyası cihazda kalır; görüntüleyici raporu bu dosyanın üstünde gösterir.
+        // Seçici dosyayı önbelleğe koyar, sistem onu silebilir; kalıcı klasöre alınır.
+        const localUri = await keepDocumentCopy(file.uri, id);
+        const job = { ...provisional, id, status: 'processing', localUri };
         await persist(job);
         setActiveJob(job);
         return { ok: true };
       } catch (e) {
         await persist(null);
         setActiveJob(null);
+        // Analyzing ekranı bunu görüp ana sayfaya döner; kota/hız sınırı gibi durumlar kart değil
+        // yönlendirme ister, o yüzden kartsız işaretlenir (ana sayfa `silent` olanı göstermez).
+        setFailedJob({ fileName: provisional.fileName, error: (e && e.message) || t('cli.serverError'), code: e && e.code, silent: true });
         return { ok: false, error: e, code: e && e.code };
       }
     },
@@ -189,6 +205,7 @@ export function JobProvider({ children }) {
     if (job && job.id) {
       cancelAuditJob(job.id).catch(() => {});
     }
+    if (job && job.localUri) deleteDocument(job.localUri);
     await persist(null);
     setActiveJob(null);
     setCompletedJob(null);

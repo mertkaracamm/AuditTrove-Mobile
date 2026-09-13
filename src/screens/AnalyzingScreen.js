@@ -14,8 +14,15 @@ import { colors, fonts } from '../theme';
 import { t } from '../i18n';
 import { useJob } from '../jobs/JobContext';
 
-const STEPS = [t('an.s1'), t('an.s2'), t('an.s3'), t('an.s4')];
-const LIVE_MSGS = [t('an.s5'), t('an.s6'), t('an.s7'), t('an.s3')];
+// İkinci adım belge türüne göre: finansal raporda tutarlar çıkarılır, diğer belgelerde sayı/tarih doğrulanır.
+const stepsFor = (docType) => [
+  t('an.s1'),
+  (!docType || docType === 'financial') ? t('an.s2') : t('an.s2b'),
+  t('an.s3'), t('an.s4'), t('an.s8'),
+];
+// Adımın kaçıncı saniyede aktifleşeceği; gerçek akış paralel çalıştığı için bu bir zaman çizelgesidir, durum bildirimi değil.
+const STEP_AT = [0, 3, 7, 17, 24];
+const LIVE_MSGS = [t('an.s5'), t('an.s6'), t('an.s7'), t('an.s9')];
 
 function fmtElapsed(sec) {
   const m = Math.floor(sec / 60);
@@ -35,6 +42,7 @@ export default function AnalyzingScreen({ navigation, route }) {
   // Sonuc/hata YALNIZCA bir kez islensin (cift navigation'i onler)
   const handledRef = useRef(false);
 
+  const STEPS = stepsFor(activeJob && activeJob.docType);
   const fileName =
     (activeJob && activeJob.fileName) ||
     (route.params && route.params.file && route.params.file.name) ||
@@ -51,11 +59,15 @@ export default function AnalyzingScreen({ navigation, route }) {
       ])
     ).start();
 
-    const interval = setInterval(() => setStepIndex((i) => Math.min(i + 1, STEPS.length - 1)), 1400);
     // Gecen sureyi gercek saatten hesapla (arka plandan donunce dogru olsun)
     if (activeJob && activeJob.startedAt) startRef.current = activeJob.startedAt;
-    const computeElapsed = () =>
-      setElapsed(Math.max(0, Math.floor((Date.now() - startRef.current) / 1000)));
+    const computeElapsed = () => {
+      const sec = Math.max(0, Math.floor((Date.now() - startRef.current) / 1000));
+      setElapsed(sec);
+      let idx = 0;
+      for (let i = 0; i < STEP_AT.length; i++) if (sec >= STEP_AT[i]) idx = i;
+      setStepIndex(idx);
+    };
     computeElapsed();
     const tick = setInterval(computeElapsed, 1000);
     const live = setInterval(() => setLiveIndex((i) => (i + 1) % LIVE_MSGS.length), 3000);
@@ -64,7 +76,6 @@ export default function AnalyzingScreen({ navigation, route }) {
       if (s === 'active') computeElapsed();
     });
     return () => {
-      clearInterval(interval);
       clearInterval(tick);
       clearInterval(live);
       appSub.remove();
@@ -83,7 +94,7 @@ export default function AnalyzingScreen({ navigation, route }) {
           index: 1,
           routes: [
             { name: 'Home' },
-            { name: 'Result', params: { result: c.result, fileName: c.fileName, docType: c.docType } },
+            { name: 'Result', params: { result: c.result, fileName: c.fileName, docType: c.docType, language: c.language, localUri: c.localUri, historyId: c.historyId, pagesUri: c.pagesUri } },
           ],
         });
       }

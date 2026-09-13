@@ -70,6 +70,9 @@ export default function HistoryScreen({ navigation }) {
                   fileName: item.fileName,
                   docType: item.docType,
                   language: item.language,
+                  localUri: item.localUri,
+                  historyId: item.id,
+                  pagesUri: item.pagesUri,
                   fromHistory: true,
                 })
               }

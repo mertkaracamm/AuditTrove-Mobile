@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   Linking,
   Alert,
   Image,
+  Switch,
 } from 'react-native';
+import { isSoundEnabled, setSoundEnabled, tick, capabilities } from '../feedback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 import { ONBOARDING_KEY } from './OnboardingScreen';
@@ -28,6 +30,7 @@ function openUrl(url) {
 }
 
 export default function SettingsScreen({ navigation }) {
+  const [sound, setSound] = useState(isSoundEnabled());
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.aboutCard}>
@@ -104,6 +107,21 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.rowText}>{t('set.showIntro')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </Pressable>
+        <View style={[styles.row, styles.rowDivider]}>
+          <Text style={styles.rowText}>{t('set.sound')}</Text>
+          <Switch
+            value={sound}
+            onValueChange={(v) => { setSound(v); setSoundEnabled(v); if (v) tick(); }}
+            trackColor={{ false: colors.line, true: colors.teal }}
+            thumbColor={sound ? colors.cyan : colors.textSoft}
+          />
+        </View>
+        <View style={[styles.row, styles.rowDivider]}>
+          <Text style={styles.rowText}>{t('set.feedbackStatus')}</Text>
+          <Text style={styles.rowValue}>
+            {(() => { const c = capabilities(); return `${t('set.haptics')}: ${c.haptics ? '✓' : '✗'} · ${t('set.soundShort')}: ${c.sound ? '✓' : '✗'}`; })()}
+          </Text>
+        </View>
         <View style={[styles.row, styles.rowDivider]}>
           <Text style={styles.rowText}>{t('set.version')}</Text>
           <Text style={styles.rowValue}>{VERSION}</Text>

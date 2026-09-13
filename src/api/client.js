@@ -174,7 +174,8 @@ export async function startAuditJob(file, documentType, language) {
   if (USE_MOCK) {
     return { id: `mock:${Date.now()}` };
   }
-  const lang ='tr'; // GECICI TEST
+  // Rapor dili telefon dilidir; belge dili değil.
+  const lang = language || getLocale();
   let token = await getDeviceToken();
   let id = await submitOnce(file, documentType, token, lang);
   if (id === UNAUTHORIZED) {
@@ -187,7 +188,7 @@ export async function startAuditJob(file, documentType, language) {
 
 /**
  * Is durumunu BIR kez sorgular. Polling'i cagiran yonetir.
- * @returns {Promise<{ status: 'PENDING'|'PROCESSING'|'DONE'|'FAILED'|'GONE', result?: object, error?: string }>}
+ * @returns {Promise<{ status: 'PENDING'|'PROCESSING'|'DONE'|'FAILED'|'INTERRUPTED'|'GONE', result?: object, error?: string }>}
  */
 export async function pollAuditJobOnce(jobId) {
   if (typeof jobId === 'string' && jobId.startsWith('mock:')) {
@@ -273,4 +274,144 @@ export async function cancelAuditJob(jobId) {
   } catch (e) {
     // sessiz
   }
+}
+
+const CHAT_TIMEOUT_MS = 60000;
+
+// Sunucuya giden rapor küçültülür: sayfa metinleri ayrıca `pages` ile gider, konum kutuları soruya gerekmez.
+function slimReport(report) {
+  if (!report) return null;
+  const { pageTexts, ...rest } = report;
+  return {
+    ...rest,
+    risks: (rest.risks || []).map(({ anchors, ...r }) => r),
+  };
+}
+
+async function chatOnce(body, token) {
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      `${API_BASE_URL}/api/v1/audit/chat`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      },
+      CHAT_TIMEOUT_MS
+    );
+  } catch (e) {
+    const err = new Error(t('cli.networkError'));
+    err.code = e && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK';
+    throw err;
+  }
+  if (response.status === 401) return UNAUTHORIZED;
+  if (response.status === 429) {
+    const err = new Error(t('chat.hourlyLimit'));
+    err.code = 'RATE_LIMITED';
+    throw err;
+  }
+  if (!response.ok) {
+    const err = new Error(t('chat.failed'));
+    err.code = 'SERVER';
+    throw err;
+  }
+  const data = await response.json().catch(() => null);
+  if (!data || typeof data.answer !== 'string') {
+    const err = new Error(t('chat.failed'));
+    err.code = 'SERVER';
+    throw err;
+  }
+  return { answer: data.answer, pages: Array.isArray(data.pages) ? data.pages : [], grounded: Boolean(data.grounded) };
+}
+
+/**
+ * Rapora soru sorar. Durumsuz: soru + rapor + sayfa metinleri her seferinde gider, sunucu saklamaz.
+ * @returns {Promise<{answer:string, pages:number[], grounded:boolean}>}
+ */
+export async function askReportQuestion({ question, language, report, pages }) {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 1200));
+    return { answer: 'Örnek cevap: aylık kira bedeli 42.500 TL olarak belirtilmiş.', pages: [2], grounded: true };
+  }
+  const body = { question, language: language || getLocale(), report: slimReport(report), pages: pages || [] };
+  let token = await getDeviceToken();
+  let out = await chatOnce(body, token);
+  if (out === UNAUTHORIZED) {
+    token = await getDeviceToken(true);
+    out = await chatOnce(body, token);
+    if (out === UNAUTHORIZED) throw new Error(t('cli.serverError'));
+  }
+  return out;
+}
+
+const DIFF_TIMEOUT_MS = 120000;
+
+// İki dosya tek multipart'a sığmadığı için (uploadAsync tek dosya taşır) PDF'ler base64 JSON gövdeyle gider.
+// Sunucu ikisini işler, saklamaz. 15 MB'a kadar belgeler için yeterli; daha büyüğü zaten inceleme sınırı dışında.
+async function diffOnce(body, token) {
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      `${API_BASE_URL}/api/v1/audit/diff`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      },
+      DIFF_TIMEOUT_MS
+    );
+  } catch (e) {
+    const err = new Error(e && e.name === 'AbortError' ? t('cli.timeout') : t('cli.networkError'));
+    err.code = e && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK';
+    throw err;
+  }
+  if (response.status === 401) return UNAUTHORIZED;
+  if (response.status === 429) {
+    const err = new Error(t('diff.hourlyLimit'));
+    err.code = 'RATE_LIMITED';
+    throw err;
+  }
+  if (response.status === 400) {
+    const data = await response.json().catch(() => null);
+    const err = new Error((data && data.error) || t('diff.failed'));
+    err.code = 'BAD_REQUEST';
+    throw err;
+  }
+  if (!response.ok) {
+    const err = new Error(t('diff.failed'));
+    err.code = 'SERVER';
+    throw err;
+  }
+  const data = await response.json().catch(() => null);
+  if (!data || !Array.isArray(data.changes)) {
+    const err = new Error(t('diff.failed'));
+    err.code = 'SERVER';
+    throw err;
+  }
+  return data;
+}
+
+/**
+ * İki belge sürümünü karşılaştırır (eski → yeni). Dosyalar cihazdaki URI'lerdir.
+ * @returns {Promise<{language:string, summary:string, changes:object[], matchedRatio:number, pageCountA:number, pageCountB:number}>}
+ */
+export async function compareDocuments(oldUri, newUri, language) {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 1500));
+    return { language: 'tr', summary: '1 değişiklik', changes: [], matchedRatio: 1, pageCountA: 1, pageCountB: 1, unchangedUnits: 5 };
+  }
+  const [oldFile, newFile] = await Promise.all([
+    FileSystem.readAsStringAsync(oldUri, { encoding: 'base64' }),
+    FileSystem.readAsStringAsync(newUri, { encoding: 'base64' }),
+  ]);
+  const body = { oldFile, newFile, language: language || getLocale() };
+  let token = await getDeviceToken();
+  let out = await diffOnce(body, token);
+  if (out === UNAUTHORIZED) {
+    token = await getDeviceToken(true);
+    out = await diffOnce(body, token);
+    if (out === UNAUTHORIZED) throw new Error(t('cli.serverError'));
+  }
+  return out;
 }

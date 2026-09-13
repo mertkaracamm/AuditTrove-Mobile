@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
 import { t } from '../i18n';
+import { tick } from '../feedback';
 
 // Duzenli ikon sirasi + secime gore donusen inceleme paneli.
 // Bir tipe dokununca panel o tipin rengine burunur ve "nelere bakilir" satiri degisir.
@@ -101,7 +102,7 @@ export default function DocTypePicker({ value, onChange }) {
 
       <View style={styles.chipGrid}>
         {DOC_TYPES.map((d) => (
-          <IconChip key={d.id} type={d} selected={value === d.id} onPress={onChange} />
+          <IconChip key={d.id} type={d} selected={value === d.id} onPress={(id) => { if (id !== value) tick(); onChange(id); }} />
         ))}
       </View>
 

@@ -67,41 +67,93 @@ export async function pickPhotosToPdf() {
   return imagesToTextPdf(result.assets.map((a) => a.uri));
 }
 
-// Ortak cekirdek: goruntu listesi -> sayfa sayfa OCR -> metin katmanli PDF.
+// Ortak çekirdek: görüntü listesi → sayfa sayfa OCR → görüntü + konumlu görünmez metin katmanlı PDF.
+// Her sayfa fotoğrafın kendisidir; OCR satırları ML Kit'in verdiği koordinatlara saydam yazılır.
+// Böylece backend aynı PDFBox akışıyla metni ve yerini okur, görüntüleyici fotoğrafın üstünde boyar.
+const PAGE_W_PX = 816; // 612 pt (Letter genişliği) ≈ 816 CSS px; yükseklik fotoğrafın oranından
+const FileSystem = require('expo-file-system/legacy');
+const { Image } = require('react-native');
+
+function imageSize(uri) {
+  return new Promise((resolve) => {
+    Image.getSize(uri, (w, h) => resolve({ w, h }), () => resolve({ w: 0, h: 0 }));
+  });
+}
+
+// ML Kit sürümleri kutuyu farklı adlarla verir: {left,top,width,height} ya da {x,y,width,height}.
+function frameOf(item) {
+  const f = (item && (item.frame || item.bounding || item.boundingBox)) || null;
+  if (!f) return null;
+  const x = f.left != null ? f.left : f.x;
+  const y = f.top != null ? f.top : f.y;
+  if (x == null || y == null || !f.width || !f.height) return null;
+  return { x, y, w: f.width, h: f.height };
+}
+
 async function imagesToTextPdf(imageUris) {
-  const pageTexts = [];
+  const pages = [];
   for (const imageUri of imageUris) {
     const uri = imageUri.startsWith('file://') ? imageUri : 'file://' + imageUri;
+    let recognized = null;
     try {
-      const recognized = await TextRecognition.recognize(uri);
-      pageTexts.push((recognized && recognized.text) || '');
-    } catch (e) {
-      pageTexts.push('');
-    }
+      recognized = await TextRecognition.recognize(uri);
+    } catch (e) {}
+    const size = await imageSize(uri);
+    let base64 = '';
+    try {
+      base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+    } catch (e) {}
+    pages.push({ recognized, size, base64, text: (recognized && recognized.text) || '' });
   }
 
-  const totalChars = pageTexts.join('').replace(/\s/g, '').length;
+  const totalChars = pages.map((p) => p.text).join('').replace(/\s/g, '').length;
   if (totalChars < 40) {
     const err = new Error('scan_no_text');
     err.code = 'SCAN_NO_TEXT';
     throw err;
   }
 
-  // Her goruntu PDF'te ayri sayfa olur; boylece backend'in
-  // [REPORT PAGE n] isaretcileri fiziksel sayfalarla eslesir.
-  const pagesHtml = pageTexts
-    .map(
-      (text) =>
-        '<div style="page-break-after: always;">' +
-        '<pre style="white-space: pre-wrap; word-wrap: break-word; ' +
-        'font-family: -apple-system, Roboto, sans-serif; font-size: 12px; margin: 24px;">' +
-        escapeHtml(text) +
-        '</pre></div>'
-    )
-    .join('');
-  const html = '<html><head><meta charset="utf-8"></head><body>' + pagesHtml + '</body></html>';
+  // Her görüntü PDF'te ayrı sayfa olur; böylece backend'in [REPORT PAGE n] işaretçileri fiziksel sayfalarla eşleşir.
+  const pagesHtml = pages.map((p, i) => {
+    const { w, h } = p.size;
+    const pageH = w > 0 ? Math.round(PAGE_W_PX * h / w) : Math.round(PAGE_W_PX * 1.414);
+    const sx = w > 0 ? PAGE_W_PX / w : 1;
+    const sy = h > 0 ? pageH / h : 1;
+    const lines = [];
+    const blocks = (p.recognized && p.recognized.blocks) || [];
+    for (const b of blocks) {
+      const items = (b.lines && b.lines.length) ? b.lines : [b];
+      for (const ln of items) {
+        const f = frameOf(ln);
+        const text = (ln.text || '').trim();
+        if (!f || !text) continue;
+        const left = f.x * sx, top = f.y * sy, width = f.w * sx, height = f.h * sy;
+        const fontSize = Math.max(6, height * 0.82);
+        lines.push(
+          '<div style="position:absolute;left:' + left.toFixed(1) + 'px;top:' + top.toFixed(1) + 'px;width:' + width.toFixed(1) +
+          'px;height:' + height.toFixed(1) + 'px;font-size:' + fontSize.toFixed(1) + 'px;line-height:' + height.toFixed(1) +
+          'px;white-space:nowrap;overflow:hidden;color:transparent;font-family:-apple-system,Roboto,sans-serif;">' +
+          escapeHtml(text) + '</div>'
+        );
+      }
+    }
+    // Koordinat gelmediyse (eski ML Kit) metin sayfanın altına saydam blok olarak konur; belge yine okunur.
+    if (!lines.length && p.text) {
+      lines.push('<div style="position:absolute;left:0;top:0;width:' + PAGE_W_PX + 'px;color:transparent;font-size:10px;white-space:pre-wrap;">' + escapeHtml(p.text) + '</div>');
+    }
+    const img = p.base64
+      ? '<img src="data:image/jpeg;base64,' + p.base64 + '" style="position:absolute;left:0;top:0;width:' + PAGE_W_PX + 'px;height:' + pageH + 'px;" />'
+      : '';
+    // Sayfa sonu ilk sayfa hariç her sayfanın önüne konur; sona konursa PDF'in ucuna boş bir sayfa ekleniyor.
+    const brk = i > 0 ? 'page-break-before:always;' : '';
+    return '<div style="position:relative;width:' + PAGE_W_PX + 'px;height:' + pageH + 'px;overflow:hidden;' + brk + '">' + img + lines.join('') + '</div>';
+  }).join('');
+  const html = '<html><head><meta charset="utf-8"><style>@page{margin:0} body{margin:0;padding:0}</style></head><body>' + pagesHtml + '</body></html>';
 
-  const { uri } = await Print.printToFileAsync({ html });
+  // Sayfa yüksekliği en uzun fotoğrafa göre; kısa fotoğraflar altta boş kalır, hiçbiri ikiye bölünmez.
+  const maxH = Math.max(...pages.map((p) => (p.size.w > 0 ? Math.round(PAGE_W_PX * p.size.h / p.size.w) : Math.round(PAGE_W_PX * 1.414))));
+  // Yukarı yuvarlanır: sayfa fotoğraftan bir piksel bile kısa kalırsa taşan kısım boş bir sayfaya düşüyor.
+  const { uri } = await Print.printToFileAsync({ html, width: 612, height: Math.ceil(maxH * 612 / PAGE_W_PX) + 1 });
   const stamp = new Date();
   const name =
     'tarama-' +
