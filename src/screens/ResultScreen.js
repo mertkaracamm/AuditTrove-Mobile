@@ -103,6 +103,8 @@ export default function ResultScreen({ navigation, route }) {
   // Bölüm sekmeleri: yapışkan çubuk, dokununca ilgili bölüme kayar; kaydırınca aktif sekme değişir.
   const scrollRef = useRef(null);
   const offsets = useRef({});
+  // Sekmeye dokunulduktan sonraki kısa kilit: kaydırma sürerken takip seçimi geri almasın.
+  const jumpLock = useRef(0);
   const [activeTab, setActiveTab] = useState('summary');
   const tabs = [
     { key: 'summary', label: t('res.tabSummary') },
@@ -117,12 +119,21 @@ export default function ResultScreen({ navigation, route }) {
     tick();
     const y = offsets.current[key];
     if (y == null || !scrollRef.current) return;
+    // Dokunulan sekme hemen seçili olur; kaydırma bitene kadar takip devreye girmesin diye kısa süre kilitlenir.
+    setActiveTab(key);
+    jumpLock.current = Date.now() + 700;
     scrollRef.current.scrollTo({ y: Math.max(0, y - TAB_BAR_H - 6), animated: true });
   };
   const onScroll = (e) => {
-    const y = e.nativeEvent.contentOffset.y + TAB_BAR_H + 24;
+    if (Date.now() < jumpLock.current) return;
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const y = contentOffset.y + TAB_BAR_H + 24;
     let cur = tabs[0] && tabs[0].key;
     for (const tab of tabs) if (offsets.current[tab.key] != null && offsets.current[tab.key] <= y) cur = tab.key;
+    // Son bölüm ekranı dolduracak kadar uzun olmayabiliyor; listenin sonundaysak son sekme seçili sayılır.
+    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 24 && tabs.length) {
+      cur = tabs[tabs.length - 1].key;
+    }
     if (cur !== activeTab) setActiveTab(cur);
   };
 

@@ -206,7 +206,7 @@ function ArtDiff() {
           <View style={styles.changeBadge}><Text style={styles.changeBadgeText}>{t('ob.diffImpact')}</Text></View>
         </View>
         <Text style={styles.changeTitle}>{t('ob.diffTitle')}</Text>
-        <Text style={styles.changeNums}>42.500  →  47.000</Text>
+        <Text style={styles.changeNums}>{t('ob.diffNums')}</Text>
       </View>
     </View>
   );
