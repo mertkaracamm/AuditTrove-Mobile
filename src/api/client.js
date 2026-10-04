@@ -7,7 +7,7 @@
 // ============================================================
 
 export const USE_MOCK = false;
-export const API_BASE_URL = 'https://audittrove-staging-production.up.railway.app';
+export const API_BASE_URL = 'https://audittrove.com';
 
 const MOCK_DELAY_MS = 4500;
 

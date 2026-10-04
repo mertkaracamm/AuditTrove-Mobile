@@ -38,11 +38,10 @@ export async function addToHistory(entry) {
   return item;
 }
 
-// Geçmişi temizlemek soru ve karşılaştırma sayaçlarını da sıfırlar; kayıt gidince sayacın bağlanacağı şey kalmaz.
+// Soru ve karşılaştırma sayaçları burada silinmez; silinseydi geçmişi temizleyen kullanıcı
+// ücretsiz hakkını da sıfırlamış olurdu.
 export async function clearHistory() {
   await AsyncStorage.removeItem(KEY);
-  await AsyncStorage.removeItem(QUESTIONS_KEY);
-  await AsyncStorage.removeItem('audittrove:diffUsed');
   await deleteAllDocuments();
 }
 
