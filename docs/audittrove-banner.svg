@@ -1,0 +1,42 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#050F33"/>
+      <stop offset="0.6" stop-color="#0A2550"/>
+      <stop offset="1" stop-color="#06303F"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#05D9F0"/>
+      <stop offset="1" stop-color="#19A6A6"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#05D9F0"/>
+      <stop offset="1" stop-color="#F0BC43"/>
+    </linearGradient>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0H0V44" stroke="#FFFFFF" stroke-opacity="0.04"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="300" rx="24" fill="url(#grid)"/>
+  <circle cx="1130" cy="30" r="220" fill="#05D9F0" fill-opacity="0.06"/>
+  <circle cx="90" cy="300" r="190" fill="#19A6A6" fill-opacity="0.06"/>
+
+  <g transform="translate(92 70)">
+    <path d="M8 10a10 10 0 0 1 10-10h62l34 34v66a10 10 0 0 1-10 10H18a10 10 0 0 1-10-10z"
+          fill="none" stroke="url(#cyan)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M80 0v24a10 10 0 0 0 10 10h24" fill="none" stroke="url(#cyan)" stroke-width="7" stroke-linejoin="round"/>
+    <rect x="30" y="30" width="46" height="7" rx="3.5" fill="#05D9F0"/>
+    <rect x="30" y="48" width="46" height="7" rx="3.5" fill="#05D9F0"/>
+    <rect x="30" y="66" width="26" height="7" rx="3.5" fill="#05D9F0"/>
+    <path d="M44 86l20 20 48-52" fill="none" stroke="#05D9F0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14 112h110l-55 50z" fill="#19A6A6" fill-opacity="0.85"/>
+    <path d="M69 118l7 14 14 7-14 7-7 14-7-14-14-7 14-7z" fill="#F0BC43"/>
+  </g>
+
+  <text x="262" y="126" fill="#F6F9FF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="60" font-weight="750" letter-spacing="-1.6">AuditTrove</text>
+  <rect x="264" y="146" width="92" height="5" rx="2.5" fill="url(#rule)"/>
+  <text x="262" y="192" fill="#9FE8F5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="500">Page-referenced document review on your phone</text>
+  <text x="262" y="230" fill="#8FA4CC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17">React Native  ·  Expo  ·  iOS and Android</text>
+</svg>
